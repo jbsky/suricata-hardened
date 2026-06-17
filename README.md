@@ -61,7 +61,6 @@ COSIGN_REPOSITORY=ghcr.io/jbsky/suricata-hardened \
   docker.io/jbsky/suricata-hardened:latest
 ```
 
-
 ### Hardening tier "Platine" guarantees
 
 | Property | Description |

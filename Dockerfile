@@ -9,7 +9,7 @@
 #   - filesystem read-only friendly
 # =====================================================================
 
-ARG SURICATA_VERSION=8.0.2
+ARG SURICATA_VERSION=8.0.5
 ARG ALPINE_VERSION=3.21
 
 # ---------- Stage 1 : builder ----------------------------------------

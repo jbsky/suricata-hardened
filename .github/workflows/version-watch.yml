@@ -1,0 +1,85 @@
+# =====================================================================
+#  Version Watch — Suricata upstream release detection
+#
+#  Quotidien 06h00 UTC :
+#    1. Check OISF/suricata GitHub releases for new stable version
+#    2. Compare with versions.json
+#    3. If update available: bump versions.json + Dockerfile ARG → commit → push
+#       (triggers build-push.yml which rebuilds, signs, and pushes)
+# =====================================================================
+name: version-watch
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    name: Check & bump Suricata version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Check upstream version
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # Current version from versions.json
+          CURRENT=$(jq -r '.suricata' versions.json)
+          echo "current=${CURRENT}"
+
+          # Latest stable from GitHub releases (skip RC/beta/dev)
+          LATEST=$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" \
+            https://api.github.com/repos/OISF/suricata/releases?per_page=20 \
+            | jq -r '[.[] | select(.prerelease == false and .draft == false) | .tag_name | ltrimstr("suricata-")] | map(select(test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))) | first // empty')
+
+          if [ -z "$LATEST" ]; then
+            echo "Could not determine latest version"
+            echo "updated=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "latest=${LATEST}"
+
+          if [ "$CURRENT" = "$LATEST" ]; then
+            echo "Already up to date (${CURRENT})"
+            echo "updated=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Update available: ${CURRENT} → ${LATEST}"
+            echo "updated=true" >> "$GITHUB_OUTPUT"
+            echo "version=${LATEST}" >> "$GITHUB_OUTPUT"
+            echo "previous=${CURRENT}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Bump versions
+        if: steps.check.outputs.updated == 'true'
+        env:
+          NEW_VER: ${{ steps.check.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          # Update versions.json
+          jq --arg v "$NEW_VER" '.suricata = $v' versions.json > versions.json.tmp
+          mv versions.json.tmp versions.json
+
+          # Update Dockerfile ARG default
+          sed -i "s/^ARG SURICATA_VERSION=.*/ARG SURICATA_VERSION=${NEW_VER}/" Dockerfile
+
+          echo "Updated to Suricata ${NEW_VER}"
+          cat versions.json
+
+      - name: Commit & push
+        if: steps.check.outputs.updated == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add versions.json Dockerfile
+          git commit -m "chore(deps): bump suricata ${{ steps.check.outputs.previous }} → ${{ steps.check.outputs.version }}"
+          git push
