@@ -26,9 +26,11 @@ services:
     <<: *common-security
     cap_add:
       - NET_ADMIN
+      - NET_RAW
       - SYS_NICE
-    # Override CMD for local testing (no NFQUEUE available without host network)
-    command: ["suricata", "--pcap=eth0", "-c", "/etc/suricata/suricata.yaml"]
+    # Override for local testing: unix-socket mode (no packet source needed)
+    # Production: VyOS Podman with host network + NFQUEUE mode
+    command: ["suricata", "-c", "/etc/suricata/suricata.yaml", "--unix-socket=/var/run/suricata/suricata-command.socket"]
     volumes:
       - ./conf/suricata.yaml:/etc/suricata/suricata.yaml:ro
       - suricata-logs:/var/log/suricata
@@ -36,7 +38,7 @@ services:
     tmpfs:
       - /tmp:size=256m,mode=1777,nodev,nosuid,noexec
     healthcheck:
-      test: ["/usr/local/bin/init", "--healthcheck"]
+      test: ["CMD", "/usr/local/bin/init", "--healthcheck"]
       interval: 30s
       timeout: 5s
       start_period: 30s

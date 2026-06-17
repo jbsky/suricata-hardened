@@ -102,7 +102,8 @@ RUN sed -i 's|https://|http://|g' /etc/apk/repositories \
         libmaxminddb \
         tini-static \
         tzdata \
-        ca-certificates
+        ca-certificates \
+        libgcc libstdc++
 
 # 2/2  Create user + setcap
 RUN apk add --no-cache libcap-utils \
@@ -112,12 +113,14 @@ RUN apk add --no-cache libcap-utils \
 # Suricata binary + data from builder
 COPY --from=builder /out/ /
 
-# Set file capabilities on Suricata binary (NET_ADMIN for NFQUEUE, SYS_NICE for CPU affinity)
-RUN setcap 'cap_net_admin,cap_sys_nice+ep' /usr/bin/suricata
+# Set file capabilities on Suricata binary (NET_ADMIN for NFQUEUE, NET_RAW for pcap, SYS_NICE for CPU affinity)
+RUN setcap 'cap_net_admin,cap_net_raw,cap_sys_nice+ep' /usr/bin/suricata
 
 # Default config + rules directory structure
 RUN mkdir -p /etc/suricata/rules /var/lib/suricata/rules \
+ && touch /var/lib/suricata/rules/suricata.rules \
  && chown -R root:suricata /etc/suricata \
+ && chown -R suricata:suricata /var/lib/suricata/rules \
  && chmod 0750 /etc/suricata
 
 # Strip APK artifacts
@@ -150,6 +153,9 @@ COPY --link --from=prep /usr/share/suricata/ /usr/share/suricata/
 
 # 5. Default config (overridden by volume mount at runtime)
 COPY --link --from=prep /etc/suricata/ /etc/suricata/
+
+# 5b. Rules directory with empty default rules file
+COPY --link --from=prep /var/lib/suricata/ /var/lib/suricata/
 
 # 6. TLS trust store + timezone data
 COPY --link --from=prep /etc/ssl/ /etc/ssl/

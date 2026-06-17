@@ -21,6 +21,7 @@ const (
 	suricataUID = 8000
 	suricataGID = 8000
 	pidFile     = "/var/run/suricata/suricata.pid"
+	unixSocket  = "/var/run/suricata/suricata-command.socket"
 	defaultConf = "/etc/suricata/suricata.yaml"
 )
 
@@ -88,30 +89,29 @@ func setupDirs() error {
 // ---------------------------------------------------------------------------
 
 func healthcheck() int {
+	// Strategy 1: PID file (NFQUEUE/pcap daemon mode)
 	data, err := os.ReadFile(pidFile)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "[healthcheck] cannot read %s: %v\n", pidFile, err)
-		return 1
+	if err == nil {
+		pid, err := strconv.Atoi(trimSpace(string(data)))
+		if err == nil {
+			proc, err := os.FindProcess(pid)
+			if err == nil {
+				if err := proc.Signal(syscall.Signal(0)); err == nil {
+					return 0
+				}
+			}
+		}
 	}
 
-	pid, err := strconv.Atoi(trimSpace(string(data)))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "[healthcheck] invalid pid in %s: %v\n", pidFile, err)
-		return 1
+	// Strategy 2: Unix command socket exists (unix-socket mode)
+	if info, err := os.Stat(unixSocket); err == nil {
+		if info.Mode()&os.ModeSocket != 0 {
+			return 0
+		}
 	}
 
-	// Check process exists (signal 0 = test only)
-	proc, err := os.FindProcess(pid)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "[healthcheck] process %d not found: %v\n", pid, err)
-		return 1
-	}
-	if err := proc.Signal(syscall.Signal(0)); err != nil {
-		fmt.Fprintf(os.Stderr, "[healthcheck] process %d not alive: %v\n", pid, err)
-		return 1
-	}
-
-	return 0
+	fmt.Fprintf(os.Stderr, "[healthcheck] suricata not responding (no pid file, no unix socket)\n")
+	return 1
 }
 
 // ---------------------------------------------------------------------------

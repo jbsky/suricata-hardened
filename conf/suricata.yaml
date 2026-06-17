@@ -123,5 +123,5 @@ unix-command:
 pid-file: /var/run/suricata/suricata.pid
 
 # Classification and reference files
-classification-file: /etc/suricata/classification.config
-reference-config-file: /etc/suricata/reference.config
+classification-file: /usr/share/suricata/classification.config
+reference-config-file: /usr/share/suricata/reference.config
