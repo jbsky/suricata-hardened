@@ -67,10 +67,12 @@ suricata-hardened/
 ├── scripts/
 │   ├── check-versions.sh  # Detection version upstream
 │   └── test-alerts.sh     # Test de detection (ET rules)
-└── .github/workflows/
-    ├── build-push.yml      # Build + sign + scan + release
-    ├── version-watch.yml   # Daily OISF/suricata release detection
-    └── security-audit.yml  # Weekly Trivy + Grype + cosign verify
+└── .github/
+    ├── dependabot.yml      # Weekly GH Actions + Docker updates
+    └── workflows/
+        ├── build-push.yml      # Build + sign + scan + release
+        ├── version-watch.yml   # Daily OISF/suricata release detection
+        └── security-audit.yml  # Weekly Trivy + Grype + cosign verify
 ```
 
 ## CI/CD
