@@ -130,7 +130,9 @@ LABEL org.opencontainers.image.title="suricata-hardened" \
       org.opencontainers.image.description="Suricata 8 FROM scratch — NFQUEUE IPS, non-root, file caps, zero shell" \
       org.opencontainers.image.vendor="jbsky" \
       org.opencontainers.image.licenses="GPL-2.0-only" \
-      org.opencontainers.image.source="https://github.com/jbsky/suricata-hardened"
+      org.opencontainers.image.source="https://github.com/jbsky/suricata-hardened" \
+      security.hardening.tier="platine" \
+      security.hardening.features="from-scratch,go-init,tini-pid1,zero-shell,non-root,compiler-hardening,cosign-signed,sbom,slsa-provenance"
 
 # 1. User database (musl getpwuid needs /etc/passwd)
 COPY --link --from=prep /etc/passwd /etc/passwd

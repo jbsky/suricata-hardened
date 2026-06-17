@@ -8,7 +8,6 @@
 set -eu
 
 CONTAINER="${1:-suricata-hardened}"
-LOG="/var/log/suricata/fast.log"
 
 echo "=== Suricata IPS Alert Test ==="
 
