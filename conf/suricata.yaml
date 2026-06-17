@@ -1,0 +1,127 @@
+%YAML 1.1
+---
+# Suricata configuration - NFQUEUE IPS mode (VyOS)
+# Minimal config for hardened container deployment
+
+vars:
+  address-groups:
+    HOME_NET: "[192.168.0.0/16,172.16.0.0/12,10.0.0.0/8]"
+    EXTERNAL_NET: "!$HOME_NET"
+    HTTP_SERVERS: "$HOME_NET"
+    SMTP_SERVERS: "$HOME_NET"
+    SQL_SERVERS: "$HOME_NET"
+    DNS_SERVERS: "$HOME_NET"
+    TELNET_SERVERS: "$HOME_NET"
+    AIM_SERVERS: "$EXTERNAL_NET"
+    DC_SERVERS: "$HOME_NET"
+    DNP3_SERVER: "$HOME_NET"
+    DNP3_CLIENT: "$HOME_NET"
+    MODBUS_CLIENT: "$HOME_NET"
+    MODBUS_SERVER: "$HOME_NET"
+    ENIP_CLIENT: "$HOME_NET"
+    ENIP_SERVER: "$HOME_NET"
+  port-groups:
+    HTTP_PORTS: "80"
+    SHELLCODE_PORTS: "!80"
+    ORACLE_PORTS: 1521
+    SSH_PORTS: 22
+    DNP3_PORTS: 20000
+    MODBUS_PORTS: 502
+    FILE_DATA_PORTS: "[$HTTP_PORTS,110,143]"
+    FTP_PORTS: 21
+    GENEVE_PORTS: 6081
+    VXLAN_PORTS: 4789
+    TEREDO_PORTS: 3544
+
+# Logging
+default-log-dir: /var/log/suricata/
+
+outputs:
+  - eve-log:
+      enabled: yes
+      filetype: regular
+      filename: eve.json
+      types:
+        - alert:
+            payload: yes
+            payload-printable: yes
+            packet: yes
+            metadata: yes
+        - dns
+        - tls:
+            extended: yes
+        - files:
+            force-magic: no
+            force-hash: [md5, sha256]
+        - stats:
+            totals: yes
+            threads: no
+
+  - stats:
+      enabled: yes
+      filename: stats.log
+      append: yes
+      totals: yes
+      threads: no
+
+# NFQUEUE mode
+nfq:
+  mode: repeat
+  repeat-mark: 1
+  repeat-mask: 1
+  route-queue: 2
+  fail-open: yes
+
+# Detection engine
+detect:
+  profile: medium
+  custom-values:
+    toclient-groups: 3
+    toserver-groups: 25
+  sgh-mpm-context: auto
+  inspection-recursion-limit: 3000
+
+# Threading - workers mode (one thread per NFQUEUE)
+threading:
+  set-cpu-affinity: no
+  detect-thread-ratio: 1.0
+
+# App layer protocols
+app-layer:
+  protocols:
+    http:
+      enabled: yes
+    tls:
+      enabled: yes
+      detection-ports:
+        dp: 443
+    dns:
+      tcp:
+        enabled: yes
+      udp:
+        enabled: yes
+    ssh:
+      enabled: yes
+    smtp:
+      enabled: yes
+    ftp:
+      enabled: yes
+    smb:
+      enabled: yes
+
+# Rules
+default-rule-path: /var/lib/suricata/rules
+rule-files:
+  - suricata.rules
+
+# Unix command socket (for suricatasc reload-rules)
+unix-command:
+  enabled: yes
+  filename: /var/run/suricata/suricata-command.socket
+
+# PID file
+pid-file: /var/run/suricata/suricata.pid
+
+# Classification and reference files
+classification-file: /etc/suricata/classification.config
+reference-config-file: /etc/suricata/reference.config
