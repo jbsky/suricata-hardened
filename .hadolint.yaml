@@ -4,3 +4,4 @@
 # and Alpine moves package versions too frequently to pin reliably.
 ignored:
   - DL3018
+  - DL3013
