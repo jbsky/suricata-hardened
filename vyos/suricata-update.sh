@@ -29,12 +29,14 @@ if ! sudo podman ps --format '{{.Names}}' | grep -qx "$CONTAINER"; then
 fi
 
 # Run updater in ephemeral container
+# --network host: required for DNS resolution (updater has no proxy config)
+# entrypoint is suricata-update, so pass subcommand args directly
 log info "Exécution de suricata-update..."
-if ! sudo podman run --rm \
+if ! sudo podman run --rm --network host \
     -v "$RULES_DIR":/var/lib/suricata/rules \
     -v "$CONFIG_DIR":/etc/suricata:ro \
     "$UPDATER_IMAGE" \
-    suricata-update -f --no-test \
+    update -f --no-test \
         --suricata-conf /etc/suricata/suricata.yaml \
         --output /var/lib/suricata/rules 2>&1 | sudo tee -a "$LOGFILE"; then
     log error "Échec de suricata-update."
@@ -42,11 +44,13 @@ if ! sudo podman run --rm \
 fi
 
 # Reload rules via unix socket (no restart needed)
+# Override entrypoint to run suricatasc instead of suricata-update
 log info "Rechargement des règles via socket..."
 if sudo podman run --rm \
+    --entrypoint suricatasc \
     -v "$RUN_DIR":/var/run/suricata \
     "$UPDATER_IMAGE" \
-    suricatasc -c reload-rules /var/run/suricata/suricata-command.socket 2>&1 | sudo tee -a "$LOGFILE"; then
+    -c reload-rules /var/run/suricata/suricata-command.socket 2>&1 | sudo tee -a "$LOGFILE"; then
     log info "Règles rechargées avec succès (hot reload)."
 else
     log warning "Reload via socket échoué, restart du conteneur..."
