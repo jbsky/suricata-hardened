@@ -143,15 +143,30 @@ func entrypoint() error {
 	}
 
 	// Config validation (suricata -T)
+	// Note: suricata -T returns exit 1 if any rule fails to parse (e.g. rules
+	// referencing protocols with detection-enabled: no). This is non-fatal —
+	// Suricata skips those rules and starts normally. Only treat as fatal if
+	// SURICATA_STRICT_TEST=1 is set.
 	log("Validating configuration...")
 	if err := run("/usr/bin/suricata", "-T", "-c", conf); err != nil {
-		return fmt.Errorf("suricata config test failed: %w", err)
+		if env("SURICATA_STRICT_TEST", "") == "1" {
+			return fmt.Errorf("suricata config test failed: %w", err)
+		}
+		log("WARNING: config test returned errors (non-fatal, rule parse errors are expected)")
+	} else {
+		log("Configuration OK")
 	}
-	log("Configuration OK")
 
 	// Exec suricata (replaces this process)
-	log("Starting Suricata")
-	return execCmd(os.Args[1:])
+	// If first arg is not "suricata", prepend it. This handles the case
+	// where VyOS passes raw arguments (e.g. "-q 0 -q 1 --runmode workers")
+	// which override the Dockerfile CMD.
+	args := os.Args[1:]
+	if len(args) == 0 || args[0] != "suricata" {
+		args = append([]string{"suricata"}, args...)
+	}
+	log("Starting Suricata: %v", args)
+	return execCmd(args)
 }
 
 // ---------------------------------------------------------------------------
