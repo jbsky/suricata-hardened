@@ -126,10 +126,22 @@ func entrypoint() error {
 		return fmt.Errorf("config file %s not found", conf)
 	}
 
-	// Verify rules directory is accessible
+	// Ensure rules directory is writable
 	rulesDir := "/var/lib/suricata/rules"
-	if !exists(rulesDir) {
-		log("WARNING: rules directory %s does not exist", rulesDir)
+	if err := ensureWritable(rulesDir, suricataUID, suricataGID); err != nil {
+		return err
+	}
+
+	// Initial rule download if rules file is empty or missing
+	rulesFile := rulesDir + "/suricata.rules"
+	if !hasRules(rulesFile) {
+		log("No rules found, running suricata-update...")
+		if err := run("/usr/bin/suricata-update",
+			"update", "-f", "--no-test",
+			"--suricata-conf", conf,
+			"--output", rulesDir); err != nil {
+			log("WARNING: suricata-update failed: %v (starting with empty rules)", err)
+		}
 	}
 
 	// Ensure log directory is writable
@@ -259,4 +271,13 @@ func trimSpace(s string) string {
 
 func log(format string, a ...any) {
 	fmt.Printf("[init] "+format+"\n", a...)
+}
+
+// hasRules checks if the rules file exists and is non-empty.
+func hasRules(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return info.Size() > 0
 }

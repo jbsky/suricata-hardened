@@ -105,8 +105,10 @@ RUN sed -i 's|https://|http://|g' /etc/apk/repositories \
         ca-certificates \
         libgcc libstdc++
 
-# 2/2  Create user + setcap
+# 2/2  Create user + setcap + Python for suricata-update
 RUN apk add --no-cache libcap-utils \
+        python3 py3-pip py3-yaml \
+ && pip install --no-cache-dir --break-system-packages suricata-update \
  && addgroup -S -g 8000 suricata \
  && adduser -S -D -H -G suricata -u 8000 -s /sbin/nologin suricata
 
@@ -147,6 +149,15 @@ COPY --link --from=prep /usr/lib/ /usr/lib/
 
 # 3. Suricata binary (with file capabilities preserved)
 COPY --link --from=prep /usr/bin/suricata /usr/bin/suricata
+
+# 3b. suricatasc (reload rules via unix socket) + suricata-update (rule management)
+COPY --link --from=prep /usr/bin/suricatasc /usr/bin/suricatasc
+COPY --link --from=prep /usr/bin/suricata-update /usr/bin/suricata-update
+
+# 3c. Python runtime (required by suricata-update)
+COPY --link --from=prep /usr/bin/python3 /usr/bin/python3
+COPY --link --from=prep /usr/bin/python3.12 /usr/bin/python3.12
+COPY --link --from=prep /usr/lib/python3.12/ /usr/lib/python3.12/
 
 # 4. Suricata data files (classification, reference, threshold configs)
 COPY --link --from=prep /usr/share/suricata/ /usr/share/suricata/
