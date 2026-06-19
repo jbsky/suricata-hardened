@@ -113,8 +113,8 @@ RUN apk add --no-cache libcap-utils \
 # Suricata binary + data from builder
 COPY --from=builder /out/ /
 
-# Set file capabilities on Suricata binary (NET_ADMIN for NFQUEUE, NET_RAW for pcap, SYS_NICE for CPU affinity)
-RUN setcap 'cap_net_admin,cap_net_raw,cap_sys_nice+ep' /usr/bin/suricata
+# Set file capabilities on Suricata binary (NET_ADMIN for NFQUEUE, SYS_NICE for CPU affinity)
+RUN setcap 'cap_net_admin,cap_sys_nice+ep' /usr/bin/suricata
 
 # Default config + rules directory structure
 RUN mkdir -p /etc/suricata/rules /var/lib/suricata/rules \
