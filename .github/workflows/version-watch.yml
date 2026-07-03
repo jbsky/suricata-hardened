@@ -16,6 +16,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   check:
@@ -83,3 +84,13 @@ jobs:
           git add versions.json Dockerfile
           git commit -m "chore(deps): bump suricata ${{ steps.check.outputs.previous }} → ${{ steps.check.outputs.version }}"
           git push
+
+      # A push made with the default GITHUB_TOKEN never fires other
+      # `on: push` workflows (GitHub's anti-recursion guard), so
+      # build-push.yml would otherwise never run after a version bump.
+      # An explicit dispatch via the API is not subject to that restriction.
+      - name: Trigger build-push
+        if: steps.check.outputs.updated == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run build-push.yml --ref main
