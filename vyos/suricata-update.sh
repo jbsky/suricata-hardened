@@ -9,6 +9,9 @@ set -euo pipefail
 LOGFILE="/var/log/suricata-update.log"
 TAG="suricata-update"
 IMAGE="docker.io/jbsky/suricata-hardened:8.0.5"
+# Derived from IMAGE's tag rather than hardcoded separately, so the two
+# can never drift apart on a version bump.
+SURICATA_VERSION="${IMAGE##*:}"
 RULES_DIR="/config/containers/suricata/rules"
 CONFIG_DIR="/config/containers/suricata/etc"
 RULES_FILE="$RULES_DIR/suricata.rules"
@@ -34,9 +37,17 @@ sudo systemctl stop vyos-container-suricata.service || true
 #    Note: suricata-update exits non-zero due to reload-command needing /bin/sh
 #          (absent in FROM scratch). Rules are written BEFORE that error. We verify
 #          success via file timestamp, not exit code.
+#    --suricata-version REQUIRED: renaming the suricata binary above (to bypass
+#          file caps) means suricata-update can't auto-detect the engine version
+#          by executing it. Without this flag it silently falls back to its own
+#          hardcoded default (6.0.0!) and fetches the ET Open ruleset built for
+#          that ancient version instead of what's actually running. Confirmed via
+#          /var/log/suricata-update.log: "Using default Suricata version of
+#          6.0.0" / "Fetching .../suricata-6.0.0/emerging.rules.tar.gz" on every
+#          run before this fix.
 log info "Téléchargement des règles..."
 
-UPDATE_ARGS="update -f --no-test --suricata-conf /etc/suricata/suricata.yaml --output /var/lib/suricata/rules"
+UPDATE_ARGS="update -f --no-test --suricata-version $SURICATA_VERSION --suricata-conf /etc/suricata/suricata.yaml --output /var/lib/suricata/rules"
 [ -f "$CONFIG_DIR/disable.conf" ] && UPDATE_ARGS="$UPDATE_ARGS --disable-conf /etc/suricata/disable.conf"
 [ -f "$CONFIG_DIR/modify.conf" ] && UPDATE_ARGS="$UPDATE_ARGS --modify-conf /etc/suricata/modify.conf"
 
