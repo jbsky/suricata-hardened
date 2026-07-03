@@ -53,7 +53,6 @@ hadolint:
   services: []
   script:
     - hadolint --failure-threshold warning Dockerfile
-    - hadolint --failure-threshold warning updater/Dockerfile
 
 shellcheck:
   stage: lint
@@ -138,13 +137,6 @@ build:suricata:
     BUILD_CONTEXT: "."
     VERSION_KEY: suricata
 
-build:updater:
-  <<: *build-template
-  variables:
-    IMAGE_NAME: suricata-updater
-    BUILD_CONTEXT: updater
-    VERSION_KEY: suricata
-
 # ---------- SIGN (cosign keyless via OIDC GitLab) -------------------
 .sign-template: &sign-template
   stage: sign
@@ -165,12 +157,6 @@ sign:suricata:
   needs: ["build:suricata"]
   variables:
     IMAGE_NAME: suricata-hardened
-
-sign:updater:
-  <<: *sign-template
-  needs: ["build:updater"]
-  variables:
-    IMAGE_NAME: suricata-updater
 
 # ---------- SCAN ----------------------------------------------------
 .scan-template: &scan-template
@@ -202,12 +188,6 @@ scan:suricata:
   needs: ["build:suricata"]
   variables:
     IMAGE_NAME: suricata-hardened
-
-scan:updater:
-  <<: *scan-template
-  needs: ["build:updater"]
-  variables:
-    IMAGE_NAME: suricata-updater
 
 # ---------- RELEASE (sur tag) ---------------------------------------
 release:tarball:
