@@ -9,7 +9,7 @@
 #   - filesystem read-only friendly
 # =====================================================================
 
-ARG SURICATA_VERSION=8.0.5
+ARG SURICATA_VERSION=8.0.6
 # ALPINE_VERSION kept for check-versions.sh/versions.json reference only --
 # the FROM lines below pin tag+digest together as a literal so a version
 # bump requires deliberately re-resolving the digest, not a silent drift
