@@ -115,12 +115,26 @@ WORKDIR /build
 COPY go.mod init.go ./
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags='-s -w' -o /init .
 
+# ---------- Stage 2b : pybuilder (Python patche pour suricata-update) ----
+# Alpine 3.24 package encore python3 3.14.5 (3 CVE High, fix upstream en
+# 3.14.6 pas encore repackage par Alpine -- verifie identique sur 3.21 a
+# edge). L'image officielle python:3.14-alpine est basee sur la meme
+# Alpine 3.24 mais compile Python depuis les sources independamment du
+# cycle apk, et embarque deja 3.14.6.
+FROM python:3.14-alpine@sha256:26730869004e2b9c4b9ad09cab8625e81d256d1ce97e72df5520e806b1709f92 AS pybuilder
+RUN pip install --no-cache-dir suricata-update
+
 # ---------- Stage 3 : prep (assemble runtime filesystem) -------------
 FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b AS prep
 
 # -- Runtime APK installs split for proxy timeout --
 
 # 1/2  Core runtime libs
+# openssl + libffi: not needed by any apk package installed here anymore --
+# they used to arrive transitively via Alpine's python3 package. Python
+# itself now comes from the pybuilder stage (see above), but its _ssl/
+# _hashlib/_ctypes C extensions still dlopen libssl.so.3/libcrypto.so.3/
+# libffi.so.8 at runtime, so they're listed explicitly.
 RUN sed -i 's|https://|http://|g' /etc/apk/repositories \
  && apk add --no-cache \
         pcre2 yaml jansson \
@@ -132,14 +146,23 @@ RUN sed -i 's|https://|http://|g' /etc/apk/repositories \
         tini-static \
         tzdata \
         ca-certificates \
-        libgcc libstdc++
+        libgcc libstdc++ \
+        openssl libffi
 
-# 2/2  Create user + setcap + Python for suricata-update
+# 2/2  Create user + setcap
 RUN apk add --no-cache libcap-utils \
-        python3 py3-pip py3-yaml \
- && pip install --no-cache-dir --break-system-packages suricata-update \
  && addgroup -S -g 8000 suricata \
  && adduser -S -D -H -G suricata -u 8000 -s /sbin/nologin suricata
+
+# Python runtime + suricata-update, from pybuilder (see note above).
+# libpython3.14.so.1.0 lives directly under /usr/local/lib/, as a sibling
+# of the python3.14/ module directory, not inside it -- must be copied
+# separately or the interpreter fails to dynamically link at exec time.
+COPY --from=pybuilder /usr/local/bin/python3.14 /usr/local/bin/python3.14
+COPY --from=pybuilder /usr/local/bin/python3 /usr/local/bin/python3
+COPY --from=pybuilder /usr/local/lib/python3.14/ /usr/local/lib/python3.14/
+COPY --from=pybuilder /usr/local/lib/libpython3* /usr/local/lib/
+COPY --from=pybuilder /usr/local/bin/suricata-update /usr/local/bin/suricata-update
 
 # Suricata binary + data from builder
 COPY --from=builder /out/ /
@@ -179,14 +202,17 @@ COPY --link --from=prep /usr/lib/ /usr/lib/
 # 3. Suricata binary (with file capabilities preserved)
 COPY --link --from=prep /usr/bin/suricata /usr/bin/suricata
 
-# 3b. suricatasc (reload rules via unix socket) + suricata-update (rule management)
+# 3b. suricatasc (reload rules via unix socket, built by suricata itself)
 COPY --link --from=prep /usr/bin/suricatasc /usr/bin/suricatasc
-COPY --link --from=prep /usr/bin/suricata-update /usr/bin/suricata-update
 
-# 3c. Python runtime (required by suricata-update)
-COPY --link --from=prep /usr/bin/python3 /usr/bin/python3
-COPY --link --from=prep /usr/bin/python3.14 /usr/bin/python3.14
-COPY --link --from=prep /usr/lib/python3.14/ /usr/lib/python3.14/
+# 3c. Python runtime + suricata-update (rule management, from pybuilder --
+# see the note on that stage for why it's not the apk-packaged python3)
+COPY --link --from=prep /usr/local/bin/suricata-update /usr/local/bin/suricata-update
+COPY --link --from=prep /usr/local/bin/python3 /usr/local/bin/python3
+COPY --link --from=prep /usr/local/bin/python3.14 /usr/local/bin/python3.14
+COPY --link --from=prep /usr/local/lib/python3.14/ /usr/local/lib/python3.14/
+COPY --link --from=prep /usr/local/lib/libpython3.14.so* /usr/local/lib/
+COPY --link --from=prep /usr/local/lib/libpython3.so /usr/local/lib/libpython3.so
 
 # 4. Suricata data files (classification, reference, threshold configs)
 COPY --link --from=prep /usr/share/suricata/ /usr/share/suricata/
