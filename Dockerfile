@@ -14,10 +14,10 @@ ARG SURICATA_VERSION=8.0.6
 # the FROM lines below pin tag+digest together as a literal so a version
 # bump requires deliberately re-resolving the digest, not a silent drift
 # if this ARG changes without the pin being updated to match.
-ARG ALPINE_VERSION=3.21
+ARG ALPINE_VERSION=3.24
 
 # ---------- Stage 1 : builder ----------------------------------------
-FROM alpine:3.21@sha256:48b0309ca019d89d40f670aa1bc06e426dc0931948452e8491e3d65087abc07d AS builder
+FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b AS builder
 
 ARG SURICATA_VERSION
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
@@ -43,9 +43,13 @@ RUN apk add --no-cache \
         rust cargo cbindgen
 
 # 3/4  Library dependencies
+# libhtp-dev is NOT included here: Alpine dropped the libhtp/libhtp-dev
+# packages starting with 3.24, so it's built from upstream source below
+# instead (keeps --enable-non-bundled-htp working and libhtp independently
+# versioned/patchable, without depending on Alpine choosing to package it).
 RUN apk add --no-cache \
         pcre2-dev yaml-dev jansson-dev \
-        libpcap-dev libnet-dev libhtp-dev \
+        libpcap-dev libnet-dev \
         libnetfilter_queue-dev libnfnetlink-dev \
         libcap-ng-dev libcap-dev \
         lz4-dev zlib-dev \
@@ -55,6 +59,27 @@ RUN apk add --no-cache \
 RUN apk add --no-cache \
         curl xz ca-certificates \
         python3
+
+WORKDIR /src
+
+# Build libhtp from upstream source (see note above)
+ARG LIBHTP_VERSION=0.5.53
+ARG LIBHTP_SHA256=c6f4aadfc40a57eee5518555c2cc1b2cd38d6d5f8ad3a24e7cfc6a0963c524fb
+RUN --mount=type=secret,id=ca-certs,required=false \
+    if [ -f /run/secrets/ca-certs ]; then cat /run/secrets/ca-certs >> /etc/ssl/certs/ca-certificates.crt; fi \
+ && curl -fsSL "https://github.com/OISF/libhtp/archive/refs/tags/${LIBHTP_VERSION}.tar.gz" -o libhtp.tar.gz \
+ && echo "${LIBHTP_SHA256}  libhtp.tar.gz" | sha256sum -c - \
+ && tar -xzf libhtp.tar.gz \
+ && mv "libhtp-${LIBHTP_VERSION}" libhtp
+
+WORKDIR /src/libhtp
+
+RUN ./autogen.sh \
+ && ./configure --prefix=/usr --disable-static \
+ && make -j"$(nproc)" \
+ && make install \
+ && mkdir -p /out/usr/lib \
+ && cp -a /usr/lib/libhtp.so* /out/usr/lib/
 
 WORKDIR /src
 
@@ -91,7 +116,7 @@ COPY go.mod init.go ./
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags='-s -w' -o /init .
 
 # ---------- Stage 3 : prep (assemble runtime filesystem) -------------
-FROM alpine:3.21@sha256:48b0309ca019d89d40f670aa1bc06e426dc0931948452e8491e3d65087abc07d AS prep
+FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b AS prep
 
 # -- Runtime APK installs split for proxy timeout --
 
@@ -99,7 +124,7 @@ FROM alpine:3.21@sha256:48b0309ca019d89d40f670aa1bc06e426dc0931948452e8491e3d650
 RUN sed -i 's|https://|http://|g' /etc/apk/repositories \
  && apk add --no-cache \
         pcre2 yaml jansson \
-        libpcap libnet libhtp \
+        libpcap libnet \
         libnetfilter_queue libnfnetlink \
         libcap-ng libcap \
         lz4-libs zlib \
@@ -160,8 +185,8 @@ COPY --link --from=prep /usr/bin/suricata-update /usr/bin/suricata-update
 
 # 3c. Python runtime (required by suricata-update)
 COPY --link --from=prep /usr/bin/python3 /usr/bin/python3
-COPY --link --from=prep /usr/bin/python3.12 /usr/bin/python3.12
-COPY --link --from=prep /usr/lib/python3.12/ /usr/lib/python3.12/
+COPY --link --from=prep /usr/bin/python3.14 /usr/bin/python3.14
+COPY --link --from=prep /usr/lib/python3.14/ /usr/lib/python3.14/
 
 # 4. Suricata data files (classification, reference, threshold configs)
 COPY --link --from=prep /usr/share/suricata/ /usr/share/suricata/
