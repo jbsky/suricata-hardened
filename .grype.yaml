@@ -1,0 +1,19 @@
+# Vulnerable code present but never reachable in this image's actual usage
+# (equivalent to a VEX "not_affected / vulnerable_code_not_present" call,
+# written as a plain ignore rule since grype's vex-status/vex-justification
+# fields only apply when consuming an external --vex document, not inside
+# this file's `ignore:` list).
+#
+# CVE-2026-15308: DoS in Python's html.parser.HTMLParser (CPU exhaustion via
+# repeated unterminated markup declarations). Fixed only in Python 3.15.0,
+# not yet released stable (see SECURITY.md for details/tracking).
+# suricata-update -- the only thing running on this Python in this image --
+# fetches and parses YAML index files + plain-text Suricata rule files over
+# HTTPS. It never imports `html` or `html.parser` anywhere in its codebase
+# (verified: zero references in the installed package source, checked
+# 2026-07-15). The vulnerable code path physically cannot execute here.
+ignore:
+  - vulnerability: CVE-2026-15308
+    package:
+      name: python
+      version: 3.14.6

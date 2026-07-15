@@ -123,6 +123,13 @@ COSIGN_REPOSITORY=ghcr.io/jbsky/suricata-hardened \
 | SBOM | Software Bill of Materials embedded in manifest |
 | SLSA provenance | Build provenance attestation (level 2) |
 
+### Known Security Exceptions
+
+See [SECURITY.md](SECURITY.md) for the current status of the weekly Trivy/Grype audit,
+including CVEs that are suppressed with a documented reason (e.g. code paths that are
+present in a bundled runtime but never exercised by this image) versus ones still
+genuinely blocked pending an upstream release.
+
 ## License
 
 GPL-2.0-only (same as Suricata)
