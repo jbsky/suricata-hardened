@@ -47,6 +47,7 @@ RUN apk add --no-cache \
 # packages starting with 3.24, so it's built from upstream source below
 # instead (keeps --enable-non-bundled-htp working and libhtp independently
 # versioned/patchable, without depending on Alpine choosing to package it).
+# hadolint ignore=DL3059
 RUN apk add --no-cache \
         pcre2-dev yaml-dev jansson-dev \
         libpcap-dev libnet-dev \
@@ -56,6 +57,7 @@ RUN apk add --no-cache \
         libmaxminddb-dev
 
 # 4/4  Download tools + Python (for configure script)
+# hadolint ignore=DL3059
 RUN apk add --no-cache \
         curl xz ca-certificates \
         python3
