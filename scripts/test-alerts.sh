@@ -35,9 +35,12 @@ else
   exit 1
 fi
 
-# Check log file exists
+# Check log file exists. There's no shell/coreutils in this FROM-scratch
+# image (confirmed by step 2), so `docker exec ... test`/`ls` can't work --
+# `docker cp` reads the container's filesystem via the daemon API instead,
+# without executing anything inside the container.
 echo "[3/4] Log file check..."
-if docker exec "$CONTAINER" test -d /var/log/suricata; then
+if docker cp "$CONTAINER:/var/log/suricata" - >/dev/null 2>&1; then
   echo "  PASS: log directory exists"
 else
   echo "  FAIL: log directory missing"
@@ -46,7 +49,7 @@ fi
 
 # Check stats.log for activity (if running long enough)
 echo "[4/4] Stats check..."
-if docker exec "$CONTAINER" test -f /var/log/suricata/stats.log; then
+if docker cp "$CONTAINER:/var/log/suricata/stats.log" - >/dev/null 2>&1; then
   echo "  PASS: stats.log exists (Suricata is logging)"
 else
   echo "  INFO: stats.log not yet created (container may have just started)"
