@@ -50,15 +50,60 @@ jobs:
           scandir: ./scripts
 
   # -------------------------------------------------------------------
+  #  Builds the image once. On a real push/tag (never on pull_request --
+  #  fork PRs must not get registry credentials) it's pushed BY DIGEST,
+  #  pulled back by that exact digest, and the functional tests run
+  #  against those literal bytes -- not a separately-built image that
+  #  "should" match thanks to cache. `promote` below re-tags/signs/scans
+  #  that same digest; nothing gets rebuilt between "tested" and "shipped".
+  #  On a PR, PUBLISH is false: `load: true` only, validates the code with
+  #  no registry credentials in play.
+  # -------------------------------------------------------------------
   test:
     name: Functional tests
     needs: lint
     runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    env:
+      PUBLISH: ${{ github.event_name != 'pull_request' && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@v7
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login ghcr.io
+        if: env.PUBLISH == 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build (load or push-by-digest)
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64
+          load: ${{ env.PUBLISH != 'true' }}
+          outputs: ${{ env.PUBLISH == 'true' && format('type=image,name={0}/{1}/{2},push-by-digest=true,name-canonical=true,push=true', env.REGISTRY, env.NAMESPACE, env.IMAGE_NAME) || '' }}
+          tags: ${{ env.PUBLISH != 'true' && format('{0}:latest', env.IMAGE_NAME) || '' }}
+          sbom: ${{ env.PUBLISH }}
+          provenance: ${{ env.PUBLISH == 'true' && 'mode=max' || 'false' }}
+          cache-from: type=gha,scope=suricata
+          cache-to: type=gha,mode=max,scope=suricata
+
+      - name: Pull back pushed digest for testing
+        if: env.PUBLISH == 'true'
+        run: |
+          set -euo pipefail
+          docker pull "${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}"
+          docker tag  "${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}" "${{ env.IMAGE_NAME }}:latest"
+
       - name: Build & start stack
-        run: docker compose up -d --build suricata
+        run: docker compose up -d --no-build suricata
 
       - name: Wait for healthy
         run: |
@@ -84,13 +129,16 @@ jobs:
         run: docker compose down -v
 
   # -------------------------------------------------------------------
+  #  Re-tags the exact digest `test` already pushed and functionally
+  #  tested -- no rebuild.
+  # -------------------------------------------------------------------
   build:
-    name: Build & Push
+    name: Promote tested digest
     needs: [lint, test]
     runs-on: ubuntu-latest
     if: github.event_name != 'pull_request'
     outputs:
-      digest: ${{ steps.build.outputs.digest }}
+      digest: ${{ steps.manifest.outputs.digest }}
 
     steps:
       - uses: actions/checkout@v7
@@ -104,15 +152,8 @@ jobs:
           echo "### Resolved versions" >> "$GITHUB_STEP_SUMMARY"
           echo "- Suricata: ${SURICATA_VER}" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
-        with:
-          platforms: arm64,amd64
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
-        with:
-          driver-opts: image=moby/buildkit:latest
 
       - name: Login ghcr.io
         uses: docker/login-action@v4
@@ -156,28 +197,25 @@ jobs:
             type=raw,value=${{ steps.versions.outputs.suricata }}
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build & Push
-        id: build
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          platforms: linux/amd64
-          push: true
-          sbom: true
-          provenance: mode=max
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: |
-            ${{ steps.meta.outputs.labels }}
-            org.opencontainers.image.version=${{ steps.versions.outputs.suricata }}
-          cache-from: type=gha,scope=suricata
-          cache-to: type=gha,mode=max,scope=suricata
+      - name: Create tags on the tested digest (no rebuild)
+        id: manifest
+        run: |
+          set -euo pipefail
+          SOURCE="${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_NAME }}@${{ needs.test.outputs.digest }}"
+          TAGS=""
+          while IFS= read -r tag; do
+            [ -n "$tag" ] && TAGS="${TAGS} -t ${tag}"
+          done <<< "${{ steps.meta.outputs.tags }}"
+          docker buildx imagetools create ${TAGS} "${SOURCE}"
+          DIGEST=$(docker buildx imagetools inspect "${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ steps.versions.outputs.suricata }}" --format '{{json .Manifest.Digest}}' | tr -d '"')
+          echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
 
       - name: Install cosign
         uses: sigstore/cosign-installer@v3
 
       - name: Sign image (OIDC keyless)
         env:
-          DIGEST: ${{ steps.build.outputs.digest }}
+          DIGEST: ${{ steps.manifest.outputs.digest }}
           HAS_DOCKERHUB: ${{ steps.dockerhub.outputs.available }}
           DOCKERHUB_NS: ${{ secrets.DOCKERHUB_USERNAME }}
         run: |
@@ -190,7 +228,7 @@ jobs:
       - name: Trivy scan
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
+          image-ref: ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_NAME }}@${{ steps.manifest.outputs.digest }}
           format: sarif
           output: trivy-suricata.sarif
           severity: CRITICAL,HIGH
@@ -209,7 +247,7 @@ jobs:
         uses: actions/attest-build-provenance@v4
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_NAME }}
-          subject-digest: ${{ steps.build.outputs.digest }}
+          subject-digest: ${{ steps.manifest.outputs.digest }}
           push-to-registry: true
 
       - name: Summary
@@ -218,7 +256,7 @@ jobs:
           DOCKERHUB_NS: ${{ secrets.DOCKERHUB_USERNAME }}
         run: |
           echo "### suricata-hardened" >> $GITHUB_STEP_SUMMARY
-          echo "**Digest:** \`${{ steps.build.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Digest:** \`${{ steps.manifest.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "docker pull ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
           if [ "$HAS_DOCKERHUB" = "true" ]; then
