@@ -123,7 +123,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags='-s -w' -o /init .
 # edge). L'image officielle python:3.14-alpine est basee sur la meme
 # Alpine 3.24 mais compile Python depuis les sources independamment du
 # cycle apk, et embarque deja 3.14.6.
-FROM python:3.14-alpine@sha256:26730869004e2b9c4b9ad09cab8625e81d256d1ce97e72df5520e806b1709f92 AS pybuilder
+FROM python:3.14-alpine@sha256:a1321512d6a287428c50dcdf2ab3857761127e03a23b1f648e9c1c0de59288f8 AS pybuilder
 RUN pip install --no-cache-dir suricata-update
 
 # ---------- Stage 3 : prep (assemble runtime filesystem) -------------
