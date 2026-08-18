@@ -172,6 +172,18 @@ COPY --from=pybuilder /usr/local/lib/python3.14/ /usr/local/lib/python3.14/
 COPY --from=pybuilder /usr/local/lib/libpython3* /usr/local/lib/
 COPY --from=pybuilder /usr/local/bin/suricata-update /usr/local/bin/suricata-update
 
+# pip is a build-time tool: nothing in this image installs packages at
+# runtime, and it drags real CVEs in with it -- trivy reads
+# `site-packages/pip/_vendor/vendor.txt`, which still declares
+# msgpack==1.1.2 (GHSA-6v7p-g79w-8964) and setuptools==70.3.0
+# (CVE-2025-47273) no matter what versions are actually installed
+# alongside it. Dropping pip + ensurepip removes those vendored
+# declarations (and their bundled wheel) instead of suppressing them.
+RUN rm -rf /usr/local/lib/python3.14/ensurepip \
+           /usr/local/lib/python3.14/site-packages/pip \
+           /usr/local/lib/python3.14/site-packages/pip-*.dist-info \
+           /usr/local/bin/pip /usr/local/bin/pip3 /usr/local/bin/pip3.14
+
 # Suricata binary + data from builder
 COPY --from=builder /out/ /
 
