@@ -7,7 +7,7 @@ comes up.
 
 | CVE | Package | Status | Why | Resolves when |
 |---|---|---|---|---|
-| CVE-2026-15308 | python 3.14.6 | Suppressed (`.grype.yaml`) | DoS in `html.parser.HTMLParser` (CPU exhaustion via malformed markup). `suricata-update` -- the only thing running on this Python -- fetches/parses YAML index and plain-text rule files over HTTPS; it never imports `html`/`html.parser` (verified: zero references in the installed package source). Vulnerable code is present in the stdlib but unreachable. | Python 3.15.0 ships stable (currently only a `3.15.0b3` beta exists, and it doesn't cover this CVE either). Re-check `python:3.15-alpine` once released and bump the `pybuilder` stage in the `Dockerfile`. |
+| CVE-2026-15308 | python 3.14.x | Suppressed (`.grype.yaml`) | DoS in `html.parser.HTMLParser` (CPU exhaustion via malformed markup). `suricata-update` -- the only thing running on this Python -- fetches/parses YAML index and plain-text rule files over HTTPS; it never imports `html`/`html.parser` (verified: zero references in the installed package source). Vulnerable code is present in the stdlib but unreachable. | Python 3.15.0 ships stable (as of 2026-08-18 upstream is at `3.15.0rc1`; the 3.14 branch has no fix). Re-check `python:3.15-alpine` once released and bump the `pybuilder` stage in the `Dockerfile`. |
 
 Previously resolved (kept for context, no longer relevant once superseded by a rebuild):
 

@@ -12,8 +12,14 @@
 # HTTPS. It never imports `html` or `html.parser` anywhere in its codebase
 # (verified: zero references in the installed package source, checked
 # 2026-07-15). The vulnerable code path physically cannot execute here.
+#
+# Deliberately NOT pinned to a patch version: the rule used to say
+# `version: 3.14.6` and went stale the moment the pybuilder moved to
+# 3.14.7, which turned the weekly audit red for a CVE that was already
+# investigated and accepted. The justification holds for every 3.14.x --
+# and once a Python release actually fixes this, grype stops matching it,
+# so an unpinned ignore cannot mask a fixed version.
 ignore:
   - vulnerability: CVE-2026-15308
     package:
       name: python
-      version: 3.14.6
