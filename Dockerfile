@@ -112,7 +112,7 @@ RUN make -j"$(nproc)" \
 RUN strip /out/usr/bin/suricata
 
 # ---------- Stage 2 : Go builder (entrypoint + healthcheck) ----------
-FROM golang:1.26-alpine@sha256:0178a641fbb4858c5f1b48e34bdaabe0350a330a1b1149aabd498d0699ff5fb2 AS gobuilder
+FROM golang:1.26-alpine@sha256:3889b425f035be855a72fb4755265311293b6d414521f0a519d819df32222d83 AS gobuilder
 WORKDIR /build
 COPY go.mod init.go ./
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags='-s -w' -o /init .
@@ -123,7 +123,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags='-s -w' -o /init .
 # edge). L'image officielle python:3.14-alpine est basee sur la meme
 # Alpine 3.24 mais compile Python depuis les sources independamment du
 # cycle apk, et embarque deja 3.14.6.
-FROM python:3.14-alpine@sha256:26730869004e2b9c4b9ad09cab8625e81d256d1ce97e72df5520e806b1709f92 AS pybuilder
+FROM python:3.14-alpine@sha256:05b2b8b732ecd268fee8727a369f936f022d1321b59befd13c30ede22769dcdc AS pybuilder
 RUN pip install --no-cache-dir suricata-update
 
 # ---------- Stage 3 : prep (assemble runtime filesystem) -------------
