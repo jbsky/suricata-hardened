@@ -124,7 +124,13 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags='-s -w' -o /init .
 # Alpine 3.24 mais compile Python depuis les sources independamment du
 # cycle apk, et embarque deja 3.14.6.
 FROM python:3.14-alpine@sha256:05b2b8b732ecd268fee8727a369f936f022d1321b59befd13c30ede22769dcdc AS pybuilder
-RUN pip install --no-cache-dir suricata-update
+# The whole site-packages tree ships in the final image, so pip's own
+# transitive picks are part of the attack surface: python:3.14-alpine
+# bundles setuptools 70.3.0 (CVE-2025-47273, path traversal) and pip
+# resolves msgpack 1.1.2 (GHSA-6v7p-g79w-8964). Upgrade both after
+# suricata-update is installed, so its resolver cannot pin them back.
+RUN pip install --no-cache-dir suricata-update \
+ && pip install --no-cache-dir --upgrade "setuptools>=78.1.1" "msgpack>=1.2.1"
 
 # ---------- Stage 3 : prep (assemble runtime filesystem) -------------
 FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b AS prep
