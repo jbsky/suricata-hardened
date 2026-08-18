@@ -1,0 +1,12 @@
+# Mirror of .grype.yaml -- both scanners gate the weekly audit, so an
+# investigated exception has to be expressed to both or the audit goes red
+# on a finding that was already accepted.
+#
+# CVE-2026-15308: CPU-exhaustion DoS in Python's html.parser.HTMLParser.
+# suricata-update -- the only thing running on this Python in this image --
+# fetches and parses YAML index files and plain-text Suricata rule files over
+# HTTPS, and never imports `html`/`html.parser` (zero references in the
+# installed package source). The vulnerable code cannot be reached here.
+# Fixed only in Python 3.15.0, which is not released stable yet (3.15.0rc1
+# as of 2026-08-18) -- see SECURITY.md for the tracking entry.
+CVE-2026-15308
