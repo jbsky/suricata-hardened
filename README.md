@@ -18,12 +18,29 @@ Image Docker Suricata 8 IPS hardenee (FROM scratch, Go init, tini PID 1), optimi
 | NFQUEUE IPS | 4 queues, workers runmode, optimise VyOS |
 | Hot rule reload | Via unix socket (zero downtime updates) |
 
-## Images
+## Tags
 
-| Image | Registry | Description |
-|-------|----------|-------------|
-| suricata-hardened | `docker.io/jbsky/suricata-hardened` | Production IPS engine |
-| suricata-updater | `docker.io/jbsky/suricata-updater` | Rule update tool (ephemeral) |
+Trois tags par image : `latest` (dernier build de `main`), la version amont
+seule, et la version amont suffixee d'un **compteur de revision**. Les deux
+premiers sont **reecrits en place** a chaque rebuild -- bump Alpine, correctif
+CVE, changement de config -- et le build qu'ils designaient devient alors
+inaccessible. **En production, epinglez le tag qui porte le compteur.**
+
+<!-- BEGIN:tags (genere par la CI -- ne pas editer a la main) -->
+| Image | Version amont | Tag immuable a epingler |
+|-------|---------------|-------------------------|
+| `jbsky/suricata-hardened` | `8.0.6` | `8.0.6.14` |
+<!-- END:tags -->
+
+Le compteur compte les commits qui touchent les inputs de l'image (`Dockerfile`, `scripts/`, `versions.json`)
+depuis le dernier changement de version amont, et repart a `0` a chaque nouvelle
+version amont. Un commit qui ne touche que la CI ne l'incremente pas.
+
+Les deux registres, `docker.io` et `ghcr.io`, publient les memes tags avec le
+meme digest.
+
+`suricata-update` et `suricatasc` sont embarques dans l'image depuis la 8.0.5 :
+l'ancienne image separee `jbsky/suricata-updater` est obsolete.
 
 ## Usage rapide
 
