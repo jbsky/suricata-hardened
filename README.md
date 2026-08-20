@@ -29,7 +29,7 @@ inaccessible. **En production, epinglez le tag qui porte le compteur.**
 <!-- BEGIN:tags (genere par la CI -- ne pas editer a la main) -->
 | Image | Version amont | Tag immuable a epingler |
 |-------|---------------|-------------------------|
-| `jbsky/suricata-hardened` | `8.0.6` | `8.0.6.14` |
+| `jbsky/suricata-hardened` | `8.0.6` | `8.0.6.15` |
 <!-- END:tags -->
 
 Le compteur compte les commits qui touchent les inputs de l'image (`Dockerfile`, `scripts/`, `versions.json`)
