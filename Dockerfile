@@ -85,10 +85,30 @@ RUN ./autogen.sh \
 
 WORKDIR /src
 
-# Download Suricata source from OISF
+# Download Suricata source from OISF and verify its signature.
+#
+# The tarball used to be taken on trust -- a bare curl, no signature, no hash --
+# while libhtp right above it was checked against a pinned sha256. OISF does
+# publish a detached signature next to each release, so this uses it.
+#
+# The key is committed next to this Dockerfile rather than pulled from a
+# keyserver at build time, and its fingerprint is pinned below: importing a key
+# and then verifying with that same key proves nothing on its own, the
+# fingerprint is the anchor. `gpg --list-keys <fpr>` fails if the committed file
+# is ever swapped for a different key.
+COPY oisf.gpg.asc /tmp/oisf.gpg.asc
+ARG OISF_FPR=B36FDAF2607E10E8FFA89E5E2BA9C98CCDF1E93A
 RUN --mount=type=secret,id=ca-certs,required=false \
     if [ -f /run/secrets/ca-certs ]; then cat /run/secrets/ca-certs >> /etc/ssl/certs/ca-certificates.crt; fi \
+ && apk add --no-cache gnupg \
  && curl -fsSL "https://www.openinfosecfoundation.org/download/suricata-${SURICATA_VERSION}.tar.gz" -o suricata.tar.gz \
+ && curl -fsSL "https://www.openinfosecfoundation.org/download/suricata-${SURICATA_VERSION}.tar.gz.sig" -o suricata.tar.gz.sig \
+ && GNUPGHOME="$(mktemp -d)" && export GNUPGHOME \
+ && gpg --batch --import /tmp/oisf.gpg.asc \
+ && gpg --batch --list-keys "${OISF_FPR}" > /dev/null \
+ && gpg --batch --verify suricata.tar.gz.sig suricata.tar.gz \
+ && gpgconf --kill gpg-agent \
+ && rm -rf "$GNUPGHOME" suricata.tar.gz.sig /tmp/oisf.gpg.asc \
  && tar -xzf suricata.tar.gz \
  && mv "suricata-${SURICATA_VERSION}" suricata
 
