@@ -175,7 +175,8 @@ RUN sed -i 's|https://|http://|g' /etc/apk/repositories \
         tzdata \
         ca-certificates \
         libgcc libstdc++ \
-        openssl libffi
+        openssl libffi \
+        xz-libs libbz2
 
 # 2/2  Create user + setcap
 RUN apk add --no-cache libcap-utils \
@@ -225,20 +226,48 @@ RUN mkdir -p /etc/suricata/rules /var/lib/suricata/rules \
 # is removed, since it needs apk to install itself.
 #
 # Python's stdlib C modules in lib-dynload are dlopen'd by the interpreter, and
-# they are what pulls libssl, libbz2 and friends: without them as roots the
-# closure is short and suricata-update dies on its first import. Enumerated
-# with find, and the build stops if the enumeration is empty.
+# they are what pulls libssl and friends: without them as roots the closure is
+# short and suricata-update dies on its first import. Enumerated with find, and
+# the build stops if the enumeration is empty.
+#
+# But Python is built from source in pybuilder, against a much larger set of
+# libraries than this stage carries: _tkinter, _sqlite3, _gdbm, _curses and
+# readline reference libtk/libtcl/libsqlite3/libgdbm/ncurses/libreadline, none
+# of which belongs in a Suricata image. lddtree reports each missing dependency
+# on stderr and STILL EXITS 0, so those modules used to be shipped broken and
+# the closure was quietly incomplete -- verified on the published image, which
+# carried ten .so files that could never be imported. A module whose
+# dependencies are absent here can never work: it is deleted rather than
+# embedded broken. xz-libs and libbz2 are installed above precisely so that
+# _lzma and _bz2 survive this pruning -- a rule updater that unpacks archives
+# has a real reason to need them, the other ten do not.
+#
+# No pipes below: this stage runs the default /bin/sh, without pipefail.
 RUN --mount=type=cache,target=/var/cache/apk \
     apk add --no-cache lddtree \
  && mkdir -p /rootfs \
- && test -n "$(find /usr/local/lib/python3*/lib-dynload -name '*.so' -print -quit)" \
+ && find /usr/local/lib/python3*/lib-dynload -name '*.so' > /tmp/dynload.list \
+ && test -s /tmp/dynload.list \
+ && while IFS= read -r m; do \
+      lddtree -l "$m" > /dev/null 2> /tmp/mod.err; \
+      if grep -q 'Not found' /tmp/mod.err; then \
+        echo "lib-dynload: suppression de ${m} (dependance absente de cette image)"; \
+        rm -f "$m"; \
+      fi; \
+    done < /tmp/dynload.list \
  && { lddtree -l /usr/bin/suricata /usr/bin/suricatasc /usr/local/bin/python3; \
       find /usr/local/lib -maxdepth 1 -name 'libpython3*.so*' -exec lddtree -l {} +; \
-      find /usr/local/lib/python3*/lib-dynload -name '*.so' -exec lddtree -l {} +; } > /tmp/closure.list \
+      find /usr/local/lib/python3*/lib-dynload -name '*.so' -exec lddtree -l {} +; } \
+      > /tmp/closure.list 2> /tmp/closure.err \
+ && if grep -q 'Not found' /tmp/closure.list /tmp/closure.err; then \
+      echo "closure incomplete -- a dependency is missing from this stage:" >&2; \
+      grep 'Not found' /tmp/closure.list /tmp/closure.err >&2; \
+      exit 1; \
+    fi \
  && sort -u /tmp/closure.list -o /tmp/closure.list \
  && tar -cf /tmp/closure.tar -T /tmp/closure.list \
  && tar -xf /tmp/closure.tar -C /rootfs \
- && rm -f /tmp/closure.list /tmp/closure.tar
+ && rm -f /tmp/dynload.list /tmp/mod.err /tmp/closure.list /tmp/closure.err /tmp/closure.tar
 
 # OpenSSL providers are dlopen'd, so no closure lists them. The 1.x engines
 # (engines-3/) are deprecated and unused.
