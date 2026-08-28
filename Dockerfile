@@ -198,6 +198,33 @@ RUN mkdir -p /etc/suricata/rules /var/lib/suricata/rules \
  && chmod 0750 /etc/suricata
 
 # Strip APK artifacts
+# Collect exactly the shared objects that ship. Copying /lib and /usr/lib whole
+# defeats the apk cleanup just below: it carried libapk.so along with it.
+# lddtree lists each binary, its transitive dependencies, symlinks with their
+# targets, and the loader for the architecture being built. It runs before apk
+# is removed, since it needs apk to install itself.
+#
+# Python's stdlib C modules in lib-dynload are dlopen'd by the interpreter, and
+# they are what pulls libssl, libbz2 and friends: without them as roots the
+# closure is short and suricata-update dies on its first import. Enumerated
+# with find, and the build stops if the enumeration is empty.
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk add --no-cache lddtree \
+ && mkdir -p /rootfs \
+ && test -n "$(find /usr/local/lib/python3*/lib-dynload -name '*.so' -print -quit)" \
+ && { lddtree -l /usr/bin/suricata /usr/bin/suricatasc /usr/local/bin/python3; \
+      find /usr/local/lib -maxdepth 1 -name 'libpython3*.so*' -exec lddtree -l {} +; \
+      find /usr/local/lib/python3*/lib-dynload -name '*.so' -exec lddtree -l {} +; } > /tmp/closure.list \
+ && sort -u /tmp/closure.list -o /tmp/closure.list \
+ && tar -cf /tmp/closure.tar -T /tmp/closure.list \
+ && tar -xf /tmp/closure.tar -C /rootfs \
+ && rm -f /tmp/closure.list /tmp/closure.tar
+
+# OpenSSL providers are dlopen'd, so no closure lists them. The 1.x engines
+# (engines-3/) are deprecated and unused.
+RUN mkdir -p /rootfs/usr/lib \
+ && cp -a /usr/lib/ossl-modules /rootfs/usr/lib/
+
 RUN rm -rf /lib/apk /lib/libapk* /var/cache/apk /etc/apk /sbin/apk
 
 # ---------- Stage 4 : FROM scratch (final hardened image) ------------
@@ -216,8 +243,7 @@ COPY --link --from=prep /etc/passwd /etc/passwd
 COPY --link --from=prep /etc/group  /etc/group
 
 # 2. Dynamic linker (musl) + shared libraries
-COPY --link --from=prep /lib/ /lib/
-COPY --link --from=prep /usr/lib/ /usr/lib/
+COPY --link --from=prep /rootfs/ /
 
 # 3. Suricata binary (with file capabilities preserved)
 COPY --link --from=prep /usr/bin/suricata /usr/bin/suricata
