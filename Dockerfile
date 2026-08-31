@@ -128,8 +128,16 @@ RUN ./configure \
 RUN make -j"$(nproc)" \
  && make install DESTDIR=/out
 
-# Strip binary
-RUN strip /out/usr/bin/suricata
+# Strip everything `make install` puts in /out, not just suricata. This line
+# used to name a single file, and suricatasc went out with its debug_info
+# intact: 19,8 Mo, bigger than the stripped suricata binary itself. Naming the
+# directory means the next binary upstream adds is stripped too.
+# `file` is guarded rather than assumed: without it every case arm matches the
+# empty string, nothing gets stripped, and the image goes out fat in silence.
+RUN command -v file > /dev/null \
+ && for b in /out/usr/bin/*; do \
+      case "$(file -b "$b")" in *ELF*) strip "$b" ;; esac; \
+    done
 
 # ---------- Stage 2 : Go builder (entrypoint + healthcheck) ----------
 FROM golang:1.26-alpine@sha256:3889b425f035be855a72fb4755265311293b6d414521f0a519d819df32222d83 AS gobuilder
@@ -145,12 +153,15 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags='-s -w' -o /init .
 # cycle apk, et embarque deja 3.14.6.
 FROM python:3.14-alpine@sha256:05b2b8b732ecd268fee8727a369f936f022d1321b59befd13c30ede22769dcdc AS pybuilder
 # The whole site-packages tree ships in the final image, so pip's own
-# transitive picks are part of the attack surface: python:3.14-alpine
-# bundles setuptools 70.3.0 (CVE-2025-47273, path traversal) and pip
-# resolves msgpack 1.1.2 (GHSA-6v7p-g79w-8964). Upgrade both after
-# suricata-update is installed, so its resolver cannot pin them back.
-RUN pip install --no-cache-dir suricata-update \
- && pip install --no-cache-dir --upgrade "setuptools>=78.1.1" "msgpack>=1.2.1"
+# transitive picks are part of the attack surface: python:3.14-alpine bundles
+# setuptools 70.3.0 (CVE-2025-47273, path traversal) and pip once resolved
+# msgpack 1.1.2 (GHSA-6v7p-g79w-8964). Both used to be upgraded here. But
+# suricata-update 1.3.3 declares exactly one dependency -- pyyaml -- and
+# nothing that runs in this image imports either package (verified: zero
+# references in the installed suricata/ tree). An upgraded dependency is still
+# 6,5 Mo of code and still a line on the SBOM. They are deleted in the prep
+# stage instead of being kept at a version that happens to be unaffected.
+RUN pip install --no-cache-dir suricata-update
 
 # ---------- Stage 3 : prep (assemble runtime filesystem) -------------
 FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b AS prep
@@ -187,10 +198,18 @@ RUN apk add --no-cache libcap-utils \
 # libpython3.14.so.1.0 lives directly under /usr/local/lib/, as a sibling
 # of the python3.14/ module directory, not inside it -- must be copied
 # separately or the interpreter fails to dynamically link at exec time.
+#
+# It is named in full rather than matched by a glob: /usr/local/lib/
+# libpython3.14.so is a symlink to .so.1.0 over there, and a COPY whose source
+# is a wildcard dereferences what it matches -- the "symlink" landed here as a
+# second, complete 6 Mo copy of the library. Only the SONAME is ever loaded at
+# runtime. libpython3.so (the stable-ABI stub) is not copied at all: nothing in
+# this image links against it, and the closure check below fails loudly if that
+# ever stops being true.
 COPY --from=pybuilder /usr/local/bin/python3.14 /usr/local/bin/python3.14
 COPY --from=pybuilder /usr/local/bin/python3 /usr/local/bin/python3
 COPY --from=pybuilder /usr/local/lib/python3.14/ /usr/local/lib/python3.14/
-COPY --from=pybuilder /usr/local/lib/libpython3* /usr/local/lib/
+COPY --from=pybuilder /usr/local/lib/libpython3.14.so.1.0 /usr/local/lib/
 COPY --from=pybuilder /usr/local/bin/suricata-update /usr/local/bin/suricata-update
 
 # pip is a build-time tool: nothing in this image installs packages at
@@ -200,10 +219,49 @@ COPY --from=pybuilder /usr/local/bin/suricata-update /usr/local/bin/suricata-upd
 # (CVE-2025-47273) no matter what versions are actually installed
 # alongside it. Dropping pip + ensurepip removes those vendored
 # declarations (and their bundled wheel) instead of suppressing them.
+#
+# The rest of this list is code that cannot run here, or that nothing calls:
+#
+#   setuptools / _distutils_hack / distutils-precedence.pth -- 5,5 Mo, and the
+#     reason setuptools CVEs kept landing on this image's SBOM. Nothing imports
+#     it (suricata-update needs pyyaml and nothing else). The .pth file goes
+#     with it: it runs `import _distutils_hack` at every interpreter start, so
+#     leaving it behind buys a traceback on stderr forever.
+#   msgpack -- 1 Mo, not a dependency of suricata-update 1.3.3 and imported
+#     nowhere in the image.
+#   tkinter / curses / sqlite3 -- their C modules are deleted a few lines below
+#     because the libraries they need have no business in a Suricata image.
+#     The pure-Python half was still being shipped: packages that raise
+#     ImportError on their first line.
+#   turtle / turtledemo -- tkinter again. venv -- needs the ensurepip removed
+#     just above. idlelib -- an IDE. pydoc_data -- the help() topic dump.
+#     config-3.14-* -- the Makefile fragments for compiling extensions, which
+#     is a build-time concern and there is no compiler here anyway.
+#   lib-dynload/_test*, xx*, _ctypes_test*, _xxtestfuzz* -- CPython's own test
+#     extensions, 1 Mo of code whose only caller is CPython's test suite.
 RUN rm -rf /usr/local/lib/python3.14/ensurepip \
            /usr/local/lib/python3.14/site-packages/pip \
            /usr/local/lib/python3.14/site-packages/pip-*.dist-info \
-           /usr/local/bin/pip /usr/local/bin/pip3 /usr/local/bin/pip3.14
+           /usr/local/bin/pip /usr/local/bin/pip3 /usr/local/bin/pip3.14 \
+           /usr/local/lib/python3.14/site-packages/setuptools \
+           /usr/local/lib/python3.14/site-packages/setuptools-*.dist-info \
+           /usr/local/lib/python3.14/site-packages/_distutils_hack \
+           /usr/local/lib/python3.14/site-packages/distutils-precedence.pth \
+           /usr/local/lib/python3.14/site-packages/msgpack \
+           /usr/local/lib/python3.14/site-packages/msgpack-*.dist-info \
+           /usr/local/lib/python3.14/tkinter \
+           /usr/local/lib/python3.14/curses \
+           /usr/local/lib/python3.14/sqlite3 \
+           /usr/local/lib/python3.14/turtledemo \
+           /usr/local/lib/python3.14/turtle.py \
+           /usr/local/lib/python3.14/venv \
+           /usr/local/lib/python3.14/idlelib \
+           /usr/local/lib/python3.14/pydoc_data \
+           /usr/local/lib/python3.14/config-3.14-* \
+           /usr/local/lib/python3.14/lib-dynload/_test* \
+           /usr/local/lib/python3.14/lib-dynload/xx* \
+           /usr/local/lib/python3.14/lib-dynload/_ctypes_test* \
+           /usr/local/lib/python3.14/lib-dynload/_xxtestfuzz*
 
 # Suricata binary + data from builder
 COPY --from=builder /out/ /
@@ -242,6 +300,27 @@ RUN mkdir -p /etc/suricata/rules /var/lib/suricata/rules \
 # _lzma and _bz2 survive this pruning -- a rule updater that unpacks archives
 # has a real reason to need them, the other ten do not.
 #
+# lddtree prints each binary it is handed, so this list holds the roots as well
+# as their dependencies -- and every one of those roots is ALSO copied on its
+# own COPY line in the final stage. Layers are not deduplicated: suricata,
+# suricatasc, libpython and all of lib-dynload were shipped twice, 49 Mo of a
+# 148 Mo image. Dropping the individual COPY lines instead is not an option:
+# `setcap` above puts a file capability on /usr/bin/suricata, busybox tar has
+# no xattr support, and the copy that travels through this tar arrives without
+# cap_net_admin -- NFQUEUE would fail at runtime, silently at build time. So
+# the roots keep their own COPY, and are filtered out here; what this tar
+# carries is the system libraries and the loader, nothing else.
+#
+# The filter also drops an artifact. lddtree resolves libpython through the
+# interpreter's RUNPATH and prints it unnormalised, as
+# /usr/local/bin/../lib/libpython3.14.so.1.0; busybox tar answers "removing
+# leading '/usr/local/bin/../' from member names" and stores it as
+# lib/libpython3.14.so.1.0 -- a third 6 Mo copy of the library, sitting in
+# /lib, that no loader ever looks at.
+#
+# The completeness check runs on the UNFILTERED list, before the filter: a
+# filter must never be able to hide a missing dependency.
+#
 # No pipes below: this stage runs the default /bin/sh, without pipefail.
 RUN --mount=type=cache,target=/var/cache/apk \
     apk add --no-cache lddtree \
@@ -257,7 +336,8 @@ RUN --mount=type=cache,target=/var/cache/apk \
     done < /tmp/dynload.list \
  && { lddtree -l /usr/bin/suricata /usr/bin/suricatasc /usr/local/bin/python3; \
       find /usr/local/lib -maxdepth 1 -name 'libpython3*.so*' -exec lddtree -l {} +; \
-      find /usr/local/lib/python3*/lib-dynload -name '*.so' -exec lddtree -l {} +; } \
+      find /usr/local/lib/python3*/lib-dynload -name '*.so' -exec lddtree -l {} +; \
+      find /usr/local/lib/python3*/site-packages -name '*.so' -exec lddtree -l {} +; } \
       > /tmp/closure.list 2> /tmp/closure.err \
  && if grep -q 'Not found' /tmp/closure.list /tmp/closure.err; then \
       echo "closure incomplete -- a dependency is missing from this stage:" >&2; \
@@ -265,9 +345,11 @@ RUN --mount=type=cache,target=/var/cache/apk \
       exit 1; \
     fi \
  && sort -u /tmp/closure.list -o /tmp/closure.list \
- && tar -cf /tmp/closure.tar -T /tmp/closure.list \
+ && grep -v -E '^/usr/(local/|bin/suricata)' /tmp/closure.list > /tmp/closure.deps \
+ && tar -cf /tmp/closure.tar -T /tmp/closure.deps \
  && tar -xf /tmp/closure.tar -C /rootfs \
- && rm -f /tmp/dynload.list /tmp/mod.err /tmp/closure.list /tmp/closure.err /tmp/closure.tar
+ && rm -f /tmp/dynload.list /tmp/mod.err /tmp/closure.list /tmp/closure.deps \
+          /tmp/closure.err /tmp/closure.tar
 
 # OpenSSL providers are dlopen'd, so no closure lists them. The 1.x engines
 # (engines-3/) are deprecated and unused.
@@ -306,8 +388,7 @@ COPY --link --from=prep /usr/local/bin/suricata-update /usr/local/bin/suricata-u
 COPY --link --from=prep /usr/local/bin/python3 /usr/local/bin/python3
 COPY --link --from=prep /usr/local/bin/python3.14 /usr/local/bin/python3.14
 COPY --link --from=prep /usr/local/lib/python3.14/ /usr/local/lib/python3.14/
-COPY --link --from=prep /usr/local/lib/libpython3.14.so* /usr/local/lib/
-COPY --link --from=prep /usr/local/lib/libpython3.so /usr/local/lib/libpython3.so
+COPY --link --from=prep /usr/local/lib/libpython3.14.so.1.0 /usr/local/lib/
 
 # 4. Suricata data files (classification, reference, threshold configs)
 COPY --link --from=prep /usr/share/suricata/ /usr/share/suricata/
