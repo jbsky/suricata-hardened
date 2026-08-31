@@ -128,16 +128,12 @@ RUN ./configure \
 RUN make -j"$(nproc)" \
  && make install DESTDIR=/out
 
-# Strip everything `make install` puts in /out, not just suricata. This line
-# used to name a single file, and suricatasc went out with its debug_info
-# intact: 19,8 Mo, bigger than the stripped suricata binary itself. Naming the
-# directory means the next binary upstream adds is stripped too.
-# `file` is guarded rather than assumed: without it every case arm matches the
-# empty string, nothing gets stripped, and the image goes out fat in silence.
-RUN command -v file > /dev/null \
- && for b in /out/usr/bin/*; do \
-      case "$(file -b "$b")" in *ELF*) strip "$b" ;; esac; \
-    done
+# Strip every ELF under /out, not just /out/usr/bin/*. The old loop missed
+# /out/usr/lib/libhtp.so* (compiled from source at line ~84) and any future
+# library that `make install` drops outside of /usr/bin.
+RUN find /out -type f \( -name '*.a' -o -name '*.la' \) -delete \
+ && find /out -type f \( -executable -o -name '*.so*' \) \
+      -exec strip --strip-unneeded {} +
 
 # ---------- Stage 2 : Go builder (entrypoint + healthcheck) ----------
 FROM golang:1.26-alpine@sha256:3889b425f035be855a72fb4755265311293b6d414521f0a519d819df32222d83 AS gobuilder
