@@ -16,7 +16,7 @@ Suricata runs with `allow-host-networks` (required for NFQUEUE access to host ne
 
 | Component | Details |
 |-----------|---------|
-| Image | `docker.io/jbsky/suricata-hardened:8.0.2` |
+| Image | `docker.io/jbsky/suricata-hardened` -- tag immuable courant dans le tableau du README |
 | Mode | NFQUEUE IPS (queues 0-3, workers runmode) |
 | Memory | 1536 MB |
 | Capabilities | NET_ADMIN (verdicts) + SYS_NICE (CPU affinity) |

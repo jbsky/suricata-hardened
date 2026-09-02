@@ -32,6 +32,10 @@ inaccessible. **En production, epinglez le tag qui porte le compteur.**
 | `jbsky/suricata-hardened` | `8.0.6` | `8.0.6.20` |
 <!-- END:tags -->
 
+Ce tableau, les versions citees dans le texte et les tags qui apparaissent
+dans les exemples sont tous rendus par `scripts/update-readme-tags.sh` apres
+chaque publication -- ne rien editer a la main.
+
 Le compteur compte les commits qui touchent les inputs declares (`Dockerfile`, `scripts/`, `versions.json`)
 depuis le dernier changement de version amont, et repart a `0` a chaque nouvelle
 version amont. Un commit qui ne touche que `.github/` ne l'incremente pas.
@@ -39,7 +43,7 @@ version amont. Un commit qui ne touche que `.github/` ne l'incremente pas.
 Les deux registres, `docker.io` et `ghcr.io`, publient les memes tags avec le
 meme digest.
 
-`suricata-update` et `suricatasc` sont embarques dans l'image depuis la 8.0.5 :
+`suricata-update` et `suricatasc` sont embarques dans l'image depuis la 8.0.5 : <!-- version-fixe -->
 l'ancienne image separee `jbsky/suricata-updater` est obsolete.
 
 ## Usage rapide
