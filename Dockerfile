@@ -259,6 +259,14 @@ RUN rm -rf /usr/local/lib/python3.14/ensurepip \
            /usr/local/lib/python3.14/lib-dynload/_ctypes_test* \
            /usr/local/lib/python3.14/lib-dynload/_xxtestfuzz*
 
+# Les __pycache__ ne sont la decision de personne : ce sont les modules que le
+# build a executes en passant, et dont Python a laisse le bytecode derriere lui
+# -- 224 .pyc pour 595 .py, le ratio est le diagnostic. 5,27 Mio. Sur un rootfs
+# en lecture seule, Python ne reecrira jamais ces caches ; le seul cout est la
+# recompilation en memoire d'un programme lance une fois par jour. Verifie :
+# `suricata-update --help` sort en 0 sans un seul __pycache__.
+RUN find /usr/local/lib/python3.14 -name '__pycache__' -type d -prune -exec rm -rf {} +
+
 # Suricata binary + data from builder
 COPY --from=builder /out/ /
 

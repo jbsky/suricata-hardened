@@ -1,5 +1,5 @@
 # image-manifest v1
-# image : jbsky/suricata-hardened:latest
+# image : fix/suricata-hardened:test
 # genere par scripts/image-manifest.py -- ne pas editer a la main
 
 f 0644 0:0 - etc/group
@@ -113,40 +113,38 @@ f 0755 0:0 elf usr/local/lib/python3.14/site-packages/yaml/_yaml.cpython-314-x86
 
 count 239 etc/ssl/certs/
 count 1 etc/suricata/
-count 3 usr/local/lib/python3.14/__phello__/
-count 82 usr/local/lib/python3.14/__pycache__/
-count 27 usr/local/lib/python3.14/_pyrepl/
-count 36 usr/local/lib/python3.14/asyncio/
-count 3 usr/local/lib/python3.14/collections/
-count 19 usr/local/lib/python3.14/compression/
-count 14 usr/local/lib/python3.14/concurrent/
-count 18 usr/local/lib/python3.14/ctypes/
-count 6 usr/local/lib/python3.14/dbm/
-count 51 usr/local/lib/python3.14/email/
-count 130 usr/local/lib/python3.14/encodings/
-count 7 usr/local/lib/python3.14/html/
-count 10 usr/local/lib/python3.14/http/
-count 48 usr/local/lib/python3.14/importlib/
-count 11 usr/local/lib/python3.14/json/
-count 7 usr/local/lib/python3.14/logging/
-count 26 usr/local/lib/python3.14/multiprocessing/
-count 7 usr/local/lib/python3.14/pathlib/
-count 11 usr/local/lib/python3.14/re/
-count 3 usr/local/lib/python3.14/site-packages/_yaml/
+count 2 usr/local/lib/python3.14/__phello__/
+count 26 usr/local/lib/python3.14/_pyrepl/
+count 35 usr/local/lib/python3.14/asyncio/
+count 1 usr/local/lib/python3.14/collections/
+count 11 usr/local/lib/python3.14/compression/
+count 11 usr/local/lib/python3.14/concurrent/
+count 14 usr/local/lib/python3.14/ctypes/
+count 5 usr/local/lib/python3.14/dbm/
+count 31 usr/local/lib/python3.14/email/
+count 123 usr/local/lib/python3.14/encodings/
+count 3 usr/local/lib/python3.14/html/
+count 5 usr/local/lib/python3.14/http/
+count 27 usr/local/lib/python3.14/importlib/
+count 6 usr/local/lib/python3.14/json/
+count 3 usr/local/lib/python3.14/logging/
+count 24 usr/local/lib/python3.14/multiprocessing/
+count 4 usr/local/lib/python3.14/pathlib/
+count 5 usr/local/lib/python3.14/re/
+count 1 usr/local/lib/python3.14/site-packages/_yaml/
 count 7 usr/local/lib/python3.14/site-packages/pyyaml-6.0.3.dist-info/
-count 89 usr/local/lib/python3.14/site-packages/suricata/
+count 47 usr/local/lib/python3.14/site-packages/suricata/
 count 8 usr/local/lib/python3.14/site-packages/suricata_update-1.3.3.dist-info/
-count 17 usr/local/lib/python3.14/site-packages/yaml/__pycache__/
-count 4 usr/local/lib/python3.14/string/
-count 4 usr/local/lib/python3.14/sysconfig/
-count 9 usr/local/lib/python3.14/tomllib/
-count 14 usr/local/lib/python3.14/unittest/
-count 12 usr/local/lib/python3.14/urllib/
-count 8 usr/local/lib/python3.14/wsgiref/
-count 34 usr/local/lib/python3.14/xml/
-count 6 usr/local/lib/python3.14/xmlrpc/
-count 10 usr/local/lib/python3.14/zipfile/
-count 5 usr/local/lib/python3.14/zoneinfo/
+count 2 usr/local/lib/python3.14/string/
+count 2 usr/local/lib/python3.14/sysconfig/
+count 5 usr/local/lib/python3.14/tomllib/
+count 13 usr/local/lib/python3.14/unittest/
+count 6 usr/local/lib/python3.14/urllib/
+count 7 usr/local/lib/python3.14/wsgiref/
+count 26 usr/local/lib/python3.14/xml/
+count 3 usr/local/lib/python3.14/xmlrpc/
+count 5 usr/local/lib/python3.14/zipfile/
+count 4 usr/local/lib/python3.14/zoneinfo/
 count 658 usr/share/
 count 8 var/
 
