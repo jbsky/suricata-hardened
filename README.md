@@ -153,4 +153,14 @@ genuinely blocked pending an upstream release.
 
 ## License
 
-GPL-2.0-only (same as Suricata)
+Le contenu de ce depot -- Dockerfile, `init.go`, scripts et chaine CI -- est
+sous **Apache-2.0**, voir [`LICENSE`](LICENSE). Copyright 2026 jbsky.
+
+**Suricata est sous GPL-2.0-only** et le reste ainsi dans l'image. La
+distinction compte particulierement ici : Apache-2.0 et GPL-2.0-only ne sont
+pas compatibles *au sein d'une meme oeuvre*, elles le sont parfaitement dans
+une meme image. `init.go` est un programme distinct : il execute Suricata, il
+n'est lie a aucune de ses bibliotheques et n'en reprend aucun code.
+
+Contributions : voir [`CONTRIBUTING.md`](CONTRIBUTING.md), un `Signed-off-by`
+est demande.
