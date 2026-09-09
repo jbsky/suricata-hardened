@@ -197,6 +197,20 @@ func exists(path string) bool {
 	return err == nil
 }
 
+// writeOK dit si un repertoire accepte reellement une ecriture. mkdir + chmod
+// + chown peuvent tous reussir sur un point de montage en lecture seule :
+// seule une ecriture le prouve.
+func writeOK(dir string) bool {
+	tmp, err := os.CreateTemp(dir, ".write-test-*")
+	if err != nil {
+		return false
+	}
+	name := tmp.Name()
+	tmp.Close()
+	os.Remove(name)
+	return true
+}
+
 func run(name string, args ...string) error {
 	cmd := exec.Command(name, args...)
 	cmd.Stdout = os.Stdout
@@ -224,24 +238,14 @@ func ensureWritable(path string, uid, gid int) error {
 		return fmt.Errorf("%s exists but is not a directory", path)
 	}
 	// Fast path: already writable
-	tmp, err := os.CreateTemp(path, ".write-test-*")
-	if err == nil {
-		name := tmp.Name()
-		tmp.Close()
-		os.Remove(name)
+	if writeOK(path) {
 		return nil
 	}
 	// Not writable — attempt chown (best-effort)
 	log("%s is not writable by uid %d, attempting chown to %d:%d", path, os.Getuid(), uid, gid)
-	if chErr := chownRecursive(path, uid, gid); chErr == nil {
-		tmp2, err2 := os.CreateTemp(path, ".write-test-*")
-		if err2 == nil {
-			name := tmp2.Name()
-			tmp2.Close()
-			os.Remove(name)
-			log("fixed ownership of %s", path)
-			return nil
-		}
+	if chErr := chownRecursive(path, uid, gid); chErr == nil && writeOK(path) {
+		log("fixed ownership of %s", path)
+		return nil
 	}
 	return fmt.Errorf(
 		"%s is not writable by uid %d.\n"+
