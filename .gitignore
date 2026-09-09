@@ -2,3 +2,4 @@
 certs/
 sbom/
 *.tar.gz
+init

@@ -1,5 +1,5 @@
 # image-manifest v1
-# image : fix/suricata-hardened:test
+# image : suricata-hardened
 # genere par scripts/image-manifest.py -- ne pas editer a la main
 
 f 0644 0:0 - etc/group
@@ -37,10 +37,10 @@ l usr/lib/libnetfilter_queue.so.1 -> libnetfilter_queue.so.1.5.0
 f 0755 0:0 elf usr/lib/libnetfilter_queue.so.1.5.0
 l usr/lib/libnfnetlink.so.0 -> libnfnetlink.so.0.2.0
 f 0755 0:0 elf usr/lib/libnfnetlink.so.0.2.0
-l usr/lib/libpcap.so.1 -> libpcap.so.1.10.6
-f 0755 0:0 elf usr/lib/libpcap.so.1.10.6
-l usr/lib/libpcre2-8.so.0 -> libpcre2-8.so.0.15.0
-f 0755 0:0 elf usr/lib/libpcre2-8.so.0.15.0
+l usr/lib/libpcap.so.1 -> libpcap.so.1.10.7
+f 0755 0:0 elf usr/lib/libpcap.so.1.10.7
+l usr/lib/libpcre2-8.so.0 -> libpcre2-8.so.0.16.0
+f 0755 0:0 elf usr/lib/libpcre2-8.so.0.16.0
 f 0755 0:0 elf usr/lib/libssl.so.3
 l usr/lib/libyaml-0.so.2 -> libyaml-0.so.2.0.9
 f 0755 0:0 elf usr/lib/libyaml-0.so.2.0.9
