@@ -1,4 +1,4 @@
-# image-manifest v2
+# image-manifest v3
 # image : suricata-hardened
 # genere par scripts/image-manifest.py -- ne pas editer a la main
 
@@ -111,7 +111,7 @@ f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/unicodedata.cpython-314-x86_
 f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/zlib.cpython-314-x86_64-linux-musl.so
 f 0755 0:0 elf usr/local/lib/python3.14/site-packages/yaml/_yaml.cpython-314-x86_64-linux-musl.so
 
-count 239 etc/ssl/certs/
+present etc/ssl/certs/
 count 1 etc/suricata/
 count 2 usr/local/lib/python3.14/__phello__/
 count 26 usr/local/lib/python3.14/_pyrepl/
