@@ -14,8 +14,11 @@ help:
 	@echo "  make scan            - Scan trivy de l'image"
 	@echo "  make clean           - Supprime volumes + images"
 
+# versions.json est la seule source : le Dockerfile n'a aucune valeur par defaut.
 build:
-	DOCKER_BUILDKIT=1 $(DC) build suricata
+	@args=$$(./scripts/versions-build-args.py --docker) \
+	  && echo "Build depuis versions.json : $$args" \
+	  && DOCKER_BUILDKIT=1 $(DC) build $$args suricata
 
 build-updater:
 	DOCKER_BUILDKIT=1 docker build -t suricata-updater:latest updater/

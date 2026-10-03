@@ -9,18 +9,27 @@
 #   - filesystem read-only friendly
 # =====================================================================
 
-ARG SURICATA_VERSION=8.0.7
-# ALPINE_VERSION kept for check-versions.sh/versions.json reference only --
-# the FROM lines below pin tag+digest together as a literal so a version
-# bump requires deliberately re-resolving the digest, not a silent drift
-# if this ARG changes without the pin being updated to match.
-ARG ALPINE_VERSION=3.24
+# Aucune version ici : versions.json est la seule source. Une valeur par
+# defaut est une 2e copie qui derive sans rien casser (.env.example disait
+# encore 8.0.2 quand versions.json disait 8.0.7). La CI et `make build`
+# passent les build-args via scripts/versions-build-args.py, qui controle aussi
+# cette regle (--check, job lint). Un `docker build` nu echoue au garde
+# ci-dessous au lieu de construire avec une version vide.
+#
+# Pas d'ARG ALPINE_VERSION : la base est epinglee tag@sha256 en dur sur les
+# FROM, et --check compare ce tag a .alpine de versions.json.
+ARG SURICATA_VERSION
 
 # ---------- Stage 1 : builder ----------------------------------------
 FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b AS builder
 
 ARG SURICATA_VERSION
+ARG LIBHTP_VERSION
+ARG LIBHTP_SHA256
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
+# Echouer avant toute compilation : scripts/versions-build-args.py --docker
+RUN test -n "${SURICATA_VERSION}" -a -n "${LIBHTP_VERSION}" -a -n "${LIBHTP_SHA256}" \
+    || { echo "build-args requis depuis versions.json : make build, ou docker build \$(scripts/versions-build-args.py --docker) ." >&2; exit 1; }
 ENV CFLAGS="-O2 -fstack-protector-strong -fstack-clash-protection -fPIE -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security" \
     CXXFLAGS="-O2 -fstack-protector-strong -fstack-clash-protection -fPIE -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security" \
     LDFLAGS="-Wl,-z,relro,-z,now,-z,noexecstack -pie"
@@ -65,8 +74,6 @@ RUN apk add --no-cache \
 WORKDIR /src
 
 # Build libhtp from upstream source (see note above)
-ARG LIBHTP_VERSION=0.5.53
-ARG LIBHTP_SHA256=c6f4aadfc40a57eee5518555c2cc1b2cd38d6d5f8ad3a24e7cfc6a0963c524fb
 RUN --mount=type=secret,id=ca-certs,required=false \
     if [ -f /run/secrets/ca-certs ]; then cat /run/secrets/ca-certs >> /etc/ssl/certs/ca-certificates.crt; fi \
  && curl -fsSL "https://github.com/OISF/libhtp/archive/refs/tags/${LIBHTP_VERSION}.tar.gz" -o libhtp.tar.gz \
