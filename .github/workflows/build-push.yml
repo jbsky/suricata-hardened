@@ -15,6 +15,8 @@ on:
       - 'init.go'
       - 'init_test.go'
       - 'go.mod'
+      # cle OISF : copiee dans l'image, donc entree du build (et du compteur de revision)
+      - 'oisf.gpg.asc'
       - 'versions.json'
       - 'image.manifest'
       - '.github/workflows/build-push.yml'
@@ -49,7 +51,7 @@ jobs:
           failure-threshold: warning
 
       - name: ShellCheck
-        uses: ludeeus/action-shellcheck@master
+        uses: ludeeus/action-shellcheck@2.0.0
         with:
           scandir: ./scripts
 
@@ -350,7 +352,7 @@ jobs:
         run: |
           set -euo pipefail
           VERSION=$(jq -r '.suricata' versions.json)
-          REVISION=$(./scripts/build-revision.sh suricata Dockerfile scripts/ versions.json)
+          REVISION=$(./scripts/build-revision.sh suricata Dockerfile init.go go.mod oisf.gpg.asc scripts/ versions.json)
           echo "tag=${VERSION}.${REVISION}" >> "$GITHUB_OUTPUT"
 
       - name: Is this tag already published?
@@ -555,7 +557,7 @@ jobs:
         run: |
           set -euo pipefail
           VERSION=$(jq -r .suricata versions.json)
-          REVISION=$(./scripts/build-revision.sh suricata Dockerfile scripts/ versions.json)
+          REVISION=$(./scripts/build-revision.sh suricata Dockerfile init.go go.mod oisf.gpg.asc scripts/ versions.json)
           ./scripts/update-readme-tags.sh "jbsky/suricata-hardened=${VERSION}=${VERSION}.${REVISION}"
 
       - name: Commit if changed
