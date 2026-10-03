@@ -361,6 +361,11 @@ RUN --mount=type=cache,target=/var/cache/apk \
 RUN mkdir -p /rootfs/usr/lib \
  && cp -a /usr/lib/ossl-modules /rootfs/usr/lib/
 
+# prep garde sa base apk : c'est elle que lisent le scan CVE et la SBOM
+# attachee a l'image publiee. Avant le 2026-10-03 ce rm etait dans prep, et
+# Trivy y voyait « alpine, 0 vulnerabilite » (OpenSSL 3.5.7 passe inapercu).
+# L'image finale tire ses fichiers de prep-clean, sans aucun artefact apk.
+FROM prep AS prep-clean
 RUN rm -rf /lib/apk /lib/libapk* /var/cache/apk /etc/apk /sbin/apk
 
 # ---------- Stage 4 : FROM scratch (final hardened image) ------------
@@ -375,41 +380,41 @@ LABEL org.opencontainers.image.title="suricata-hardened" \
       security.hardening.features="from-scratch,go-init,tini-pid1,zero-shell,non-root,compiler-hardening,cosign-signed,sbom,slsa-provenance"
 
 # 1. User database (musl getpwuid needs /etc/passwd)
-COPY --link --from=prep /etc/passwd /etc/passwd
-COPY --link --from=prep /etc/group  /etc/group
+COPY --link --from=prep-clean /etc/passwd /etc/passwd
+COPY --link --from=prep-clean /etc/group  /etc/group
 
 # 2. Dynamic linker (musl) + shared libraries
-COPY --link --from=prep /rootfs/ /
+COPY --link --from=prep-clean /rootfs/ /
 
 # 3. Suricata binary (with file capabilities preserved)
-COPY --link --from=prep /usr/bin/suricata /usr/bin/suricata
+COPY --link --from=prep-clean /usr/bin/suricata /usr/bin/suricata
 
 # 3b. suricatasc (reload rules via unix socket, built by suricata itself)
-COPY --link --from=prep /usr/bin/suricatasc /usr/bin/suricatasc
+COPY --link --from=prep-clean /usr/bin/suricatasc /usr/bin/suricatasc
 
 # 3c. Python runtime + suricata-update (rule management, from pybuilder --
 # see the note on that stage for why it's not the apk-packaged python3)
-COPY --link --from=prep /usr/local/bin/suricata-update /usr/local/bin/suricata-update
-COPY --link --from=prep /usr/local/bin/python3 /usr/local/bin/python3
-COPY --link --from=prep /usr/local/bin/python3.14 /usr/local/bin/python3.14
-COPY --link --from=prep /usr/local/lib/python3.14/ /usr/local/lib/python3.14/
-COPY --link --from=prep /usr/local/lib/libpython3.14.so.1.0 /usr/local/lib/
+COPY --link --from=prep-clean /usr/local/bin/suricata-update /usr/local/bin/suricata-update
+COPY --link --from=prep-clean /usr/local/bin/python3 /usr/local/bin/python3
+COPY --link --from=prep-clean /usr/local/bin/python3.14 /usr/local/bin/python3.14
+COPY --link --from=prep-clean /usr/local/lib/python3.14/ /usr/local/lib/python3.14/
+COPY --link --from=prep-clean /usr/local/lib/libpython3.14.so.1.0 /usr/local/lib/
 
 # 4. Suricata data files (classification, reference, threshold configs)
-COPY --link --from=prep /usr/share/suricata/ /usr/share/suricata/
+COPY --link --from=prep-clean /usr/share/suricata/ /usr/share/suricata/
 
 # 5. Default config (overridden by volume mount at runtime)
-COPY --link --from=prep /etc/suricata/ /etc/suricata/
+COPY --link --from=prep-clean /etc/suricata/ /etc/suricata/
 
 # 5b. Rules directory with empty default rules file
-COPY --link --from=prep /var/lib/suricata/ /var/lib/suricata/
+COPY --link --from=prep-clean /var/lib/suricata/ /var/lib/suricata/
 
 # 6. TLS trust store + timezone data
-COPY --link --from=prep /etc/ssl/ /etc/ssl/
-COPY --link --from=prep /usr/share/zoneinfo/ /usr/share/zoneinfo/
+COPY --link --from=prep-clean /etc/ssl/ /etc/ssl/
+COPY --link --from=prep-clean /usr/share/zoneinfo/ /usr/share/zoneinfo/
 
 # 7. PID 1 — tini-static (no musl dependency for PID 1 reliability)
-COPY --link --from=prep /sbin/tini-static /sbin/tini
+COPY --link --from=prep-clean /sbin/tini-static /sbin/tini
 
 # 8. Go init binary (static, entrypoint + healthcheck + setup-dirs)
 COPY --link --from=gobuilder /init /usr/local/bin/init
