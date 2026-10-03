@@ -5,7 +5,7 @@
 #
 #  Usage: ./scripts/check-versions.sh [--update]
 #    Without --update: prints diff only (exit 0 = no change, exit 2 = updates available)
-#    With --update: writes changes to versions.json + Dockerfile + .env.example
+#    With --update: writes changes to versions.json (the only version source)
 # =====================================================================
 set -eu
 
@@ -71,22 +71,12 @@ fi
 # --- Apply updates ---
 printf 'Applying updates...\n'
 
-# 1. versions.json
-current_alpine=$(grep '"alpine"' "$VERSIONS_FILE" | sed 's/.*: *"//;s/".*//')
-cat > "$VERSIONS_FILE" <<EOF
-{
-  "suricata": "${latest_suricata}",
-  "alpine": "${current_alpine}"
-}
-EOF
-
-# 2. Dockerfile ARG default
-sed -i "s/^ARG SURICATA_VERSION=.*/ARG SURICATA_VERSION=${latest_suricata}/" "${ROOT_DIR}/Dockerfile"
-
-# 3. .env.example
-sed -i "s/^SURICATA_VERSION=.*/SURICATA_VERSION=${latest_suricata}/" "${ROOT_DIR}/.env.example"
+# versions.json seulement : c'est la seule source (le Dockerfile n'a plus de
+# valeur par defaut, .env.example n'existe plus). jq ne touche qu'a .suricata,
+# les autres cles (libhtp, alpine) restent.
+tmp=$(mktemp)
+jq --arg v "$latest_suricata" '.suricata = $v' "$VERSIONS_FILE" > "$tmp"
+mv "$tmp" "$VERSIONS_FILE"
 
 printf 'Done. Files updated:\n'
 printf '  - versions.json\n'
-printf '  - Dockerfile\n'
-printf '  - .env.example\n'

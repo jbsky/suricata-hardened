@@ -49,7 +49,6 @@ l'ancienne image separee `jbsky/suricata-updater` est obsolete.
 ## Usage rapide
 
 ```bash
-cp .env.example .env
 make build   # Build l'image
 make up      # Demarre Suricata en mode IPS
 make test    # Smoke tests (healthcheck + alert detection)

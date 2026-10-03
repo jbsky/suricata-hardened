@@ -57,7 +57,6 @@ Deux images :
 ```
 suricata-hardened/
 ├── .dockerignore
-├── .env.example              # SURICATA_VERSION=8.0.2, ALPINE_VERSION=3.21
 ├── .gitignore
 ├── .gitlab-ci.yml
 ├── .hadolint.yaml            # ignore DL3018

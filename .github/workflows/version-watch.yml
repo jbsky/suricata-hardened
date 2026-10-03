@@ -4,7 +4,7 @@
 #  Quotidien 06h00 UTC :
 #    1. Check OISF/suricata GitHub releases for new stable version
 #    2. Compare with versions.json
-#    3. If update available: bump versions.json + Dockerfile ARG → commit → push
+#    3. If update available: bump versions.json (seule source, plus d'ARG par defaut) → commit → push
 #       (triggers build-push.yml which rebuilds, signs, and pushes)
 # =====================================================================
 name: version-watch
@@ -70,9 +70,6 @@ jobs:
           jq --arg v "$NEW_VER" '.suricata = $v' versions.json > versions.json.tmp
           mv versions.json.tmp versions.json
 
-          # Update Dockerfile ARG default
-          sed -i "s/^ARG SURICATA_VERSION=.*/ARG SURICATA_VERSION=${NEW_VER}/" Dockerfile
-
           echo "Updated to Suricata ${NEW_VER}"
           cat versions.json
 
@@ -81,7 +78,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add versions.json Dockerfile
+          git add versions.json
           git commit -m "chore(deps): bump suricata ${{ steps.check.outputs.previous }} → ${{ steps.check.outputs.version }}"
           git push
 

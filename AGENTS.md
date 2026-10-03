@@ -40,7 +40,6 @@ iptables -t mangle -A POSTROUTING -m mark --mark 10 -j NFQUEUE \
 ## Key commands
 
 ```bash
-cp .env.example .env               # required before first run
 make build                          # build suricata-hardened image
 make build-updater                  # build suricata-updater image
 make up                             # start container (pcap mode for local testing)
@@ -85,7 +84,6 @@ No process ever runs as root inside the container.
 
 ## Secrets and generated files
 
-- `.env` — gitignored, copy from `.env.example`
 - No CA/certs needed (Suricata doesn't do TLS termination)
 
 ## Deployment gotchas
@@ -130,4 +128,4 @@ shellcheck scripts/*.sh vyos/suricata-update.sh
 
 ## Version management
 
-`versions.json` is the single source of truth. `scripts/check-versions.sh --update` propagates changes to Dockerfile ARG and .env.example.
+`versions.json` is the single source of truth: the Dockerfile ARGs have no default, CI and `make build` pass them through `scripts/versions-build-args.py`, and `versions-build-args.py --check` (lint job) fails on any copy. `scripts/check-versions.sh --update` writes versions.json only.
