@@ -171,6 +171,7 @@ FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec4
 # _hashlib/_ctypes C extensions still dlopen libssl.so.3/libcrypto.so.3/
 # libffi.so.8 at runtime, so they're listed explicitly.
 RUN sed -i 's|https://|http://|g' /etc/apk/repositories \
+ && apk upgrade --no-cache \
  && apk add --no-cache \
         pcre2 yaml jansson \
         libpcap libnet \
