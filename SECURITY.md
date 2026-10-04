@@ -26,8 +26,8 @@ the old published tag `8.0.5`: real, currently-unfixed CVEs in the bundled
 predating the `python:3.14-alpine` move documented above) plus Go stdlib
 `GO-2026-4970`/`5856`.
 
-Fixed by `registry-cleanup.yml` (`scripts/prune-registry-tags.sh` for Docker Hub,
-`scripts/prune-ghcr-tags.sh` for GHCR), called as a job from `build-push.yml` after
+Fixed by `registry-cleanup.yml` (`prune-registry-tags.sh` (jbsky/hardened-ci) for Docker Hub,
+`prune-ghcr-tags.sh` (jbsky/hardened-ci) for GHCR), called as a job from `build-push.yml` after
 every push, and directly `workflow_dispatch`-able. Keeps the last 3 semver tags +
 `:latest`. Only ever deletes a package version by its own named tag -- untagged
 manifest-list children, attestations, and cosign signatures are left alone.
