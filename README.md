@@ -118,14 +118,16 @@ This image is signed with [cosign](https://github.com/sigstore/cosign) using key
 ```bash
 # From ghcr.io (signatures stored natively)
 cosign verify \
-  --certificate-identity-regexp '^https://github.com/jbsky/suricata-hardened/' \
+  --certificate-identity-regexp '^https://github.com/(jbsky/suricata-hardened|jbsky/hardened-ci)/' \
+  --certificate-github-workflow-repository jbsky/suricata-hardened \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   ghcr.io/jbsky/suricata-hardened:latest
 
 # From Docker Hub (signatures stored in ghcr.io)
 COSIGN_REPOSITORY=ghcr.io/jbsky/suricata-hardened \
   cosign verify \
-  --certificate-identity-regexp '^https://github.com/jbsky/suricata-hardened/' \
+  --certificate-identity-regexp '^https://github.com/(jbsky/suricata-hardened|jbsky/hardened-ci)/' \
+  --certificate-github-workflow-repository jbsky/suricata-hardened \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   docker.io/jbsky/suricata-hardened:latest
 ```
