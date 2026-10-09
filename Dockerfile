@@ -21,7 +21,7 @@
 ARG SURICATA_VERSION
 
 # ---------- Stage 1 : builder ----------------------------------------
-FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b AS builder
+FROM alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS builder
 
 ARG SURICATA_VERSION
 ARG LIBHTP_VERSION
@@ -154,7 +154,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags='-s -w' -o /init .
 # edge). L'image officielle python:3.14-alpine est basee sur la meme
 # Alpine 3.24 mais compile Python depuis les sources independamment du
 # cycle apk, et embarque deja 3.14.6.
-FROM python:3.14-alpine@sha256:05b2b8b732ecd268fee8727a369f936f022d1321b59befd13c30ede22769dcdc AS pybuilder
+FROM python:3.14-alpine@sha256:f6a589d43c42b9e7f7dc67a12d37132491f362859a5d750607710cc56da3bc72 AS pybuilder
 # The whole site-packages tree ships in the final image, so pip's own
 # transitive picks are part of the attack surface: python:3.14-alpine bundles
 # setuptools 70.3.0 (CVE-2025-47273, path traversal) and pip once resolved
@@ -167,7 +167,7 @@ FROM python:3.14-alpine@sha256:05b2b8b732ecd268fee8727a369f936f022d1321b59befd13
 RUN pip install --no-cache-dir suricata-update
 
 # ---------- Stage 3 : prep (assemble runtime filesystem) -------------
-FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b AS prep
+FROM alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS prep
 
 # -- Runtime APK installs split for proxy timeout --
 
