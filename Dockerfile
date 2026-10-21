@@ -149,21 +149,45 @@ COPY go.mod init.go ./
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags='-s -w' -o /init .
 
 # ---------- Stage 2b : pybuilder (Python patche pour suricata-update) ----
-# Alpine 3.24 package encore python3 3.14.5 (3 CVE High, fix upstream en
-# 3.14.6 pas encore repackage par Alpine -- verifie identique sur 3.21 a
-# edge). L'image officielle python:3.14-alpine est basee sur la meme
-# Alpine 3.24 mais compile Python depuis les sources independamment du
-# cycle apk, et embarque deja 3.14.6.
-FROM python:3.14-alpine@sha256:601e99e090cb08c2784a42395487709500bc39930307fe72f3f11a8f3c430762 AS pybuilder
+# Alpine 3.24 package python3 au rythme de ses releases (3.14.8-r0 au
+# 2026-10-21). L'image officielle python:<x.y>-alpine est basee sur la meme
+# Alpine 3.24 mais compile Python depuis les sources, independamment du cycle
+# apk : elle sert la mineure courante (3.15.0) sans attendre un repackage.
+# C'est pour ca que le runtime Python de cette image ne vient pas d'`apk add
+# python3`.
+#
+# La mineure est suivie par `.python` de versions.json : le controle
+# `versions-build-args.py --check` (porte `lint`) exige que le tag de ce FROM
+# reste dans cette branche, donc un bump de tag sans bump de versions.json
+# echoue avant tout build.
+FROM python:3.15-alpine@sha256:2699b90f4d562a22e2dd076c82f964032f64814204bff36d271a54ba4cc2c7e2 AS pybuilder
+
+# Garde. Les COPY et les purges ci-dessous nomment python3.15 en dur -- ils ne
+# peuvent pas faire autrement, le chemin du module est la mineure -- et
+# image.manifest enumere la centaine de fichiers qui en decoulent. Une mineure
+# qui bouge sous ces lignes (PR Dependabot sur le tag ci-dessus) echoue donc
+# ici, en une seconde et avec la marche a suivre, au lieu de mourir au premier
+# COPY du stage prep sur un « python3.15: not found » que rien n'explique.
+RUN PYV="$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')" \
+ && if [ "$PYV" != "3.15" ]; then \
+      echo "ERREUR: base python ${PYV}, alors que ce Dockerfile, versions.json (.python) et image.manifest nomment 3.15." >&2; \
+      echo "Bump de mineure : remplacer 3.15 par ${PYV} dans Dockerfile et versions.json, puis regenerer image.manifest." >&2; \
+      exit 1; \
+    fi
+
 # The whole site-packages tree ships in the final image, so pip's own
-# transitive picks are part of the attack surface: python:3.14-alpine bundles
-# setuptools 70.3.0 (CVE-2025-47273, path traversal) and pip once resolved
-# msgpack 1.1.2 (GHSA-6v7p-g79w-8964). Both used to be upgraded here. But
-# suricata-update 1.3.3 declares exactly one dependency -- pyyaml -- and
-# nothing that runs in this image imports either package (verified: zero
-# references in the installed suricata/ tree). An upgraded dependency is still
-# 6,5 Mo of code and still a line on the SBOM. They are deleted in the prep
-# stage instead of being kept at a version that happens to be unaffected.
+# transitive picks are part of the attack surface. python:3.15-alpine bundles
+# nothing but pip 26.2.1 -- setuptools and the msgpack that pip once resolved
+# (CVE-2025-47273, GHSA-6v7p-g79w-8964) are no longer there -- and
+# suricata-update 1.3.3 declares exactly one dependency, pyyaml. The purge in
+# the prep stage still names setuptools and msgpack: `rm -rf` is silent on a
+# path that does not exist, and a resolver that brings them back must not
+# reach the final image.
+#
+# pyyaml 6.0.3 has no cp315 musl wheel yet, so pip builds it from the sdist
+# and falls back to the pure-Python parser (`yaml.__with_libyaml__` is False):
+# one ELF fewer in the image, and a YAML parse that costs a few milliseconds
+# more on a program that runs once a day.
 RUN pip install --no-cache-dir suricata-update
 
 # ---------- Stage 3 : prep (assemble runtime filesystem) -------------
@@ -199,21 +223,21 @@ RUN apk add --no-cache libcap-utils \
  && adduser -S -D -H -G suricata -u 8000 -s /sbin/nologin suricata
 
 # Python runtime + suricata-update, from pybuilder (see note above).
-# libpython3.14.so.1.0 lives directly under /usr/local/lib/, as a sibling
-# of the python3.14/ module directory, not inside it -- must be copied
+# libpython3.15.so.1.0 lives directly under /usr/local/lib/, as a sibling
+# of the python3.15/ module directory, not inside it -- must be copied
 # separately or the interpreter fails to dynamically link at exec time.
 #
 # It is named in full rather than matched by a glob: /usr/local/lib/
-# libpython3.14.so is a symlink to .so.1.0 over there, and a COPY whose source
+# libpython3.15.so is a symlink to .so.1.0 over there, and a COPY whose source
 # is a wildcard dereferences what it matches -- the "symlink" landed here as a
 # second, complete 6 Mo copy of the library. Only the SONAME is ever loaded at
 # runtime. libpython3.so (the stable-ABI stub) is not copied at all: nothing in
 # this image links against it, and the closure check below fails loudly if that
 # ever stops being true.
-COPY --from=pybuilder /usr/local/bin/python3.14 /usr/local/bin/python3.14
+COPY --from=pybuilder /usr/local/bin/python3.15 /usr/local/bin/python3.15
 COPY --from=pybuilder /usr/local/bin/python3 /usr/local/bin/python3
-COPY --from=pybuilder /usr/local/lib/python3.14/ /usr/local/lib/python3.14/
-COPY --from=pybuilder /usr/local/lib/libpython3.14.so.1.0 /usr/local/lib/
+COPY --from=pybuilder /usr/local/lib/python3.15/ /usr/local/lib/python3.15/
+COPY --from=pybuilder /usr/local/lib/libpython3.15.so.1.0 /usr/local/lib/
 COPY --from=pybuilder /usr/local/bin/suricata-update /usr/local/bin/suricata-update
 
 # pip is a build-time tool: nothing in this image installs packages at
@@ -239,33 +263,33 @@ COPY --from=pybuilder /usr/local/bin/suricata-update /usr/local/bin/suricata-upd
 #     ImportError on their first line.
 #   turtle / turtledemo -- tkinter again. venv -- needs the ensurepip removed
 #     just above. idlelib -- an IDE. pydoc_data -- the help() topic dump.
-#     config-3.14-* -- the Makefile fragments for compiling extensions, which
+#     config-3.15-* -- the Makefile fragments for compiling extensions, which
 #     is a build-time concern and there is no compiler here anyway.
 #   lib-dynload/_test*, xx*, _ctypes_test*, _xxtestfuzz* -- CPython's own test
 #     extensions, 1 Mo of code whose only caller is CPython's test suite.
-RUN rm -rf /usr/local/lib/python3.14/ensurepip \
-           /usr/local/lib/python3.14/site-packages/pip \
-           /usr/local/lib/python3.14/site-packages/pip-*.dist-info \
-           /usr/local/bin/pip /usr/local/bin/pip3 /usr/local/bin/pip3.14 \
-           /usr/local/lib/python3.14/site-packages/setuptools \
-           /usr/local/lib/python3.14/site-packages/setuptools-*.dist-info \
-           /usr/local/lib/python3.14/site-packages/_distutils_hack \
-           /usr/local/lib/python3.14/site-packages/distutils-precedence.pth \
-           /usr/local/lib/python3.14/site-packages/msgpack \
-           /usr/local/lib/python3.14/site-packages/msgpack-*.dist-info \
-           /usr/local/lib/python3.14/tkinter \
-           /usr/local/lib/python3.14/curses \
-           /usr/local/lib/python3.14/sqlite3 \
-           /usr/local/lib/python3.14/turtledemo \
-           /usr/local/lib/python3.14/turtle.py \
-           /usr/local/lib/python3.14/venv \
-           /usr/local/lib/python3.14/idlelib \
-           /usr/local/lib/python3.14/pydoc_data \
-           /usr/local/lib/python3.14/config-3.14-* \
-           /usr/local/lib/python3.14/lib-dynload/_test* \
-           /usr/local/lib/python3.14/lib-dynload/xx* \
-           /usr/local/lib/python3.14/lib-dynload/_ctypes_test* \
-           /usr/local/lib/python3.14/lib-dynload/_xxtestfuzz*
+RUN rm -rf /usr/local/lib/python3.15/ensurepip \
+           /usr/local/lib/python3.15/site-packages/pip \
+           /usr/local/lib/python3.15/site-packages/pip-*.dist-info \
+           /usr/local/bin/pip /usr/local/bin/pip3 /usr/local/bin/pip3.15 \
+           /usr/local/lib/python3.15/site-packages/setuptools \
+           /usr/local/lib/python3.15/site-packages/setuptools-*.dist-info \
+           /usr/local/lib/python3.15/site-packages/_distutils_hack \
+           /usr/local/lib/python3.15/site-packages/distutils-precedence.pth \
+           /usr/local/lib/python3.15/site-packages/msgpack \
+           /usr/local/lib/python3.15/site-packages/msgpack-*.dist-info \
+           /usr/local/lib/python3.15/tkinter \
+           /usr/local/lib/python3.15/curses \
+           /usr/local/lib/python3.15/sqlite3 \
+           /usr/local/lib/python3.15/turtledemo \
+           /usr/local/lib/python3.15/turtle.py \
+           /usr/local/lib/python3.15/venv \
+           /usr/local/lib/python3.15/idlelib \
+           /usr/local/lib/python3.15/pydoc_data \
+           /usr/local/lib/python3.15/config-3.15-* \
+           /usr/local/lib/python3.15/lib-dynload/_test* \
+           /usr/local/lib/python3.15/lib-dynload/xx* \
+           /usr/local/lib/python3.15/lib-dynload/_ctypes_test* \
+           /usr/local/lib/python3.15/lib-dynload/_xxtestfuzz*
 
 # Les __pycache__ ne sont la decision de personne : ce sont les modules que le
 # build a executes en passant, et dont Python a laisse le bytecode derriere lui
@@ -273,7 +297,7 @@ RUN rm -rf /usr/local/lib/python3.14/ensurepip \
 # en lecture seule, Python ne reecrira jamais ces caches ; le seul cout est la
 # recompilation en memoire d'un programme lance une fois par jour. Verifie :
 # `suricata-update --help` sort en 0 sans un seul __pycache__.
-RUN find /usr/local/lib/python3.14 -name '__pycache__' -type d -prune -exec rm -rf {} +
+RUN find /usr/local/lib/python3.15 -name '__pycache__' -type d -prune -exec rm -rf {} +
 
 # Suricata binary + data from builder
 COPY --from=builder /out/ /
@@ -325,9 +349,9 @@ RUN mkdir -p /etc/suricata/rules /var/lib/suricata/rules \
 #
 # The filter also drops an artifact. lddtree resolves libpython through the
 # interpreter's RUNPATH and prints it unnormalised, as
-# /usr/local/bin/../lib/libpython3.14.so.1.0; busybox tar answers "removing
+# /usr/local/bin/../lib/libpython3.15.so.1.0; busybox tar answers "removing
 # leading '/usr/local/bin/../' from member names" and stores it as
-# lib/libpython3.14.so.1.0 -- a third 6 Mo copy of the library, sitting in
+# lib/libpython3.15.so.1.0 -- a third 6 Mo copy of the library, sitting in
 # /lib, that no loader ever looks at.
 #
 # The completeness check runs on the UNFILTERED list, before the filter: a
@@ -403,9 +427,9 @@ COPY --link --from=prep-clean /usr/bin/suricatasc /usr/bin/suricatasc
 # see the note on that stage for why it's not the apk-packaged python3)
 COPY --link --from=prep-clean /usr/local/bin/suricata-update /usr/local/bin/suricata-update
 COPY --link --from=prep-clean /usr/local/bin/python3 /usr/local/bin/python3
-COPY --link --from=prep-clean /usr/local/bin/python3.14 /usr/local/bin/python3.14
-COPY --link --from=prep-clean /usr/local/lib/python3.14/ /usr/local/lib/python3.14/
-COPY --link --from=prep-clean /usr/local/lib/libpython3.14.so.1.0 /usr/local/lib/
+COPY --link --from=prep-clean /usr/local/bin/python3.15 /usr/local/bin/python3.15
+COPY --link --from=prep-clean /usr/local/lib/python3.15/ /usr/local/lib/python3.15/
+COPY --link --from=prep-clean /usr/local/lib/libpython3.15.so.1.0 /usr/local/lib/
 
 # 4. Suricata data files (classification, reference, threshold configs)
 COPY --link --from=prep-clean /usr/share/suricata/ /usr/share/suricata/

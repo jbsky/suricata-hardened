@@ -51,102 +51,98 @@ f 0755 0:0 elf usr/lib/libzstd.so.1.<version>
 f 0755 0:0 elf usr/lib/ossl-modules/legacy.so
 f 0755 0:0 elf usr/local/bin/init
 f 0755 0:0 elf usr/local/bin/python3
-f 0755 0:0 elf usr/local/bin/python3.14
+f 0755 0:0 elf usr/local/bin/python3.15
 f 0755 0:0 - usr/local/bin/suricata-update
-f 0755 0:0 elf usr/local/lib/libpython3.14.so.1.0
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_asyncio.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_bisect.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_blake2.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_bz2.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_codecs_cn.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_codecs_hk.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_codecs_iso2022.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_codecs_jp.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_codecs_kr.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_codecs_tw.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_csv.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_ctypes.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_decimal.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_elementtree.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_hashlib.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_heapq.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_hmac.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_interpchannels.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_interpqueues.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_interpreters.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_json.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_lsprof.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_lzma.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_md5.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_multibytecodec.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_multiprocessing.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_pickle.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_posixshmem.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_posixsubprocess.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_queue.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_random.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_remote_debugging.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_sha1.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_sha2.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_sha3.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_socket.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_ssl.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_statistics.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_struct.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_zoneinfo.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/_zstd.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/array.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/binascii.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/cmath.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/fcntl.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/grp.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/math.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/mmap.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/pyexpat.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/resource.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/select.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/syslog.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/termios.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/unicodedata.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/lib-dynload/zlib.cpython-314-x86_64-linux-musl.so
-f 0755 0:0 elf usr/local/lib/python3.14/site-packages/yaml/_yaml.cpython-314-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/libpython3.15.so.1.0
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_bisect.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_blake2.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_bz2.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_codecs_cn.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_codecs_hk.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_codecs_iso2022.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_codecs_jp.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_codecs_kr.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_codecs_tw.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_csv.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_ctypes.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_elementtree.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_hashlib.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_heapq.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_hmac.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_interpchannels.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_interpqueues.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_interpreters.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_json.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_lsprof.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_lzma.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_math_integer.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_md5.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_multibytecodec.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_multiprocessing.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_pickle.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_posixshmem.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_posixsubprocess.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_queue.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_random.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_remote_debugging.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_sha1.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_sha2.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_sha3.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_socket.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_ssl.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_statistics.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_struct.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_zoneinfo.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/_zstd.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/array.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/binascii.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/cmath.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/fcntl.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/grp.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/math.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/mmap.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/pyexpat.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/resource.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/select.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/syslog.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/termios.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/unicodedata.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/zlib.cpython-315-x86_64-linux-musl.so
 
 present etc/ssl/certs/
 count 1 etc/suricata/
-count 2 usr/local/lib/python3.14/__phello__/
-count 26 usr/local/lib/python3.14/_pyrepl/
-count 35 usr/local/lib/python3.14/asyncio/
-count 1 usr/local/lib/python3.14/collections/
-count 11 usr/local/lib/python3.14/compression/
-count 11 usr/local/lib/python3.14/concurrent/
-count 14 usr/local/lib/python3.14/ctypes/
-count 5 usr/local/lib/python3.14/dbm/
-count 31 usr/local/lib/python3.14/email/
-count 123 usr/local/lib/python3.14/encodings/
-count 3 usr/local/lib/python3.14/html/
-count 5 usr/local/lib/python3.14/http/
-count 27 usr/local/lib/python3.14/importlib/
-count 6 usr/local/lib/python3.14/json/
-count 3 usr/local/lib/python3.14/logging/
-count 24 usr/local/lib/python3.14/multiprocessing/
-count 4 usr/local/lib/python3.14/pathlib/
-count 5 usr/local/lib/python3.14/re/
-count 1 usr/local/lib/python3.14/site-packages/_yaml/
-count 7 usr/local/lib/python3.14/site-packages/pyyaml-6.0.3.dist-info/
-count 47 usr/local/lib/python3.14/site-packages/suricata/
-count 8 usr/local/lib/python3.14/site-packages/suricata_update-1.3.3.dist-info/
-count 2 usr/local/lib/python3.14/string/
-count 2 usr/local/lib/python3.14/sysconfig/
-count 5 usr/local/lib/python3.14/tomllib/
-count 13 usr/local/lib/python3.14/unittest/
-count 6 usr/local/lib/python3.14/urllib/
-count 7 usr/local/lib/python3.14/wsgiref/
-count 26 usr/local/lib/python3.14/xml/
-count 3 usr/local/lib/python3.14/xmlrpc/
-count 5 usr/local/lib/python3.14/zipfile/
-count 4 usr/local/lib/python3.14/zoneinfo/
+count 2 usr/local/lib/python3.15/__phello__/
+count 30 usr/local/lib/python3.15/_pyrepl/
+count 35 usr/local/lib/python3.15/asyncio/
+count 1 usr/local/lib/python3.15/collections/
+count 11 usr/local/lib/python3.15/compression/
+count 11 usr/local/lib/python3.15/concurrent/
+count 14 usr/local/lib/python3.15/ctypes/
+count 5 usr/local/lib/python3.15/dbm/
+count 31 usr/local/lib/python3.15/email/
+count 123 usr/local/lib/python3.15/encodings/
+count 3 usr/local/lib/python3.15/html/
+count 5 usr/local/lib/python3.15/http/
+count 29 usr/local/lib/python3.15/importlib/
+count 6 usr/local/lib/python3.15/json/
+count 3 usr/local/lib/python3.15/logging/
+count 24 usr/local/lib/python3.15/multiprocessing/
+count 4 usr/local/lib/python3.15/pathlib/
+count 61 usr/local/lib/python3.15/profiling/
+count 5 usr/local/lib/python3.15/re/
+count 86 usr/local/lib/python3.15/site-packages/
+count 2 usr/local/lib/python3.15/string/
+count 2 usr/local/lib/python3.15/sysconfig/
+count 5 usr/local/lib/python3.15/tomllib/
+count 13 usr/local/lib/python3.15/unittest/
+count 6 usr/local/lib/python3.15/urllib/
+count 7 usr/local/lib/python3.15/wsgiref/
+count 27 usr/local/lib/python3.15/xml/
+count 3 usr/local/lib/python3.15/xmlrpc/
+count 6 usr/local/lib/python3.15/zipfile/
+count 4 usr/local/lib/python3.15/zoneinfo/
 count 658 usr/share/
 count 8 var/
 
 dup 2 12411 etc/ssl/openssl.cnf etc/ssl/openssl.cnf.dist
-dup 2 14000 usr/local/bin/python3 usr/local/bin/python3.14
+dup 2 14000 usr/local/bin/python3 usr/local/bin/python3.15
