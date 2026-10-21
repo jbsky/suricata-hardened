@@ -154,7 +154,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags='-s -w' -o /init .
 # edge). L'image officielle python:3.14-alpine est basee sur la meme
 # Alpine 3.24 mais compile Python depuis les sources independamment du
 # cycle apk, et embarque deja 3.14.6.
-FROM python:3.14-alpine@sha256:f6a589d43c42b9e7f7dc67a12d37132491f362859a5d750607710cc56da3bc72 AS pybuilder
+FROM python:3.15-alpine@sha256:2699b90f4d562a22e2dd076c82f964032f64814204bff36d271a54ba4cc2c7e2 AS pybuilder
 # The whole site-packages tree ships in the final image, so pip's own
 # transitive picks are part of the attack surface: python:3.14-alpine bundles
 # setuptools 70.3.0 (CVE-2025-47273, path traversal) and pip once resolved
