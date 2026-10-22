@@ -21,7 +21,7 @@
 ARG SURICATA_VERSION
 
 # ---------- Stage 1 : builder ----------------------------------------
-FROM alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS builder
+FROM alpine:3.24@sha256:71e9b7bae160ba167fa17414401b94cbcdaf3c32feeab9298bd794a2a0614c35 AS builder
 
 ARG SURICATA_VERSION
 ARG LIBHTP_VERSION
@@ -143,7 +143,7 @@ RUN find /out -type f \( -name '*.a' -o -name '*.la' \) -delete \
       -exec strip --strip-unneeded {} +
 
 # ---------- Stage 2 : Go builder (entrypoint + healthcheck) ----------
-FROM golang:1.27-alpine@sha256:f2c872bcee949b7be9c490efd02b48a8a2fbf947cdf533f1c58525ec9d8170fd AS gobuilder
+FROM golang:1.27-alpine@sha256:d530cf60723abf1ffae0cd16bb546b379ec0550d2f3815e5b16ed69dbc00fba4 AS gobuilder
 WORKDIR /build
 COPY go.mod init.go ./
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags='-s -w' -o /init .
@@ -154,7 +154,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags='-s -w' -o /init .
 # edge). L'image officielle python:3.14-alpine est basee sur la meme
 # Alpine 3.24 mais compile Python depuis les sources independamment du
 # cycle apk, et embarque deja 3.14.6.
-FROM python:3.14-alpine@sha256:f6a589d43c42b9e7f7dc67a12d37132491f362859a5d750607710cc56da3bc72 AS pybuilder
+FROM python:3.14-alpine@sha256:01ddf82b43479870a7ea87037b7d68472bef12cc244941843c26bb75bf9a9b04 AS pybuilder
 # The whole site-packages tree ships in the final image, so pip's own
 # transitive picks are part of the attack surface: python:3.14-alpine bundles
 # setuptools 70.3.0 (CVE-2025-47273, path traversal) and pip once resolved
@@ -167,7 +167,7 @@ FROM python:3.14-alpine@sha256:f6a589d43c42b9e7f7dc67a12d37132491f362859a5d75060
 RUN pip install --no-cache-dir suricata-update
 
 # ---------- Stage 3 : prep (assemble runtime filesystem) -------------
-FROM alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS prep
+FROM alpine:3.24@sha256:71e9b7bae160ba167fa17414401b94cbcdaf3c32feeab9298bd794a2a0614c35 AS prep
 
 # -- Runtime APK installs split for proxy timeout --
 
