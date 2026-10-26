@@ -462,3 +462,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
 
 ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/init"]
 CMD ["suricata", "-q", "0", "-q", "1", "-q", "2", "-q", "3", "--runmode", "workers"]
+# cve-rebuild 2026-10-26 CVE-2026-92392 -- paquets Alpine corriges, pris par apk upgrade du stage prep (cve-watch run 40315015781)
