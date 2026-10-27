@@ -143,7 +143,7 @@ RUN find /out -type f \( -name '*.a' -o -name '*.la' \) -delete \
       -exec strip --strip-unneeded {} +
 
 # ---------- Stage 2 : Go builder (entrypoint + healthcheck) ----------
-FROM golang:1.27-alpine@sha256:b8c9b82affbbb82a020bbcf998dad2ba9516944ac7e883524642a481a9505e9c AS gobuilder
+FROM golang:1.27-alpine@sha256:d200d2dd76b03a99b52651fd1325aff7dcd35422c35c01bac56571b0507f3deb AS gobuilder
 WORKDIR /build
 COPY go.mod init.go ./
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags='-s -w' -o /init .
@@ -160,7 +160,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags='-s -w' -o /init .
 # `versions-build-args.py --check` (porte `lint`) exige que le tag de ce FROM
 # reste dans cette branche, donc un bump de tag sans bump de versions.json
 # echoue avant tout build.
-FROM python:3.15-alpine@sha256:d44b1254cb92329418d164b22b20d86bbd3869d48e80e09e476531a409a728bb AS pybuilder
+FROM python:3.15-alpine@sha256:0aa144e9ec2ae8fd80dfd94070ef3e432a0df17b6e5e0091dc05323974ce9913 AS pybuilder
 
 # Garde. Les COPY et les purges ci-dessous nomment python3.15 en dur -- ils ne
 # peuvent pas faire autrement, le chemin du module est la mineure -- et
