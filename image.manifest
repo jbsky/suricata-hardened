@@ -141,7 +141,7 @@ count 27 usr/local/lib/python3.15/xml/
 count 3 usr/local/lib/python3.15/xmlrpc/
 count 6 usr/local/lib/python3.15/zipfile/
 count 4 usr/local/lib/python3.15/zoneinfo/
-count 658 usr/share/
+count 659 usr/share/
 count 8 var/
 
 dup 2 12411 etc/ssl/openssl.cnf etc/ssl/openssl.cnf.dist
