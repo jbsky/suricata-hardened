@@ -160,7 +160,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags='-s -w' -o /init .
 # `versions-build-args.py --check` (porte `lint`) exige que le tag de ce FROM
 # reste dans cette branche, donc un bump de tag sans bump de versions.json
 # echoue avant tout build.
-FROM python:3.15-alpine@sha256:0aa144e9ec2ae8fd80dfd94070ef3e432a0df17b6e5e0091dc05323974ce9913 AS pybuilder
+FROM python:3.15-alpine@sha256:20a82dbc2783112ddb91d1534603f802d222a3e63e593cd002eb2ac534e70211 AS pybuilder
 
 # Garde. Les COPY et les purges ci-dessous nomment python3.15 en dur -- ils ne
 # peuvent pas faire autrement, le chemin du module est la mineure -- et
