@@ -29,7 +29,7 @@ inaccessible. **En production, epinglez le tag qui porte le compteur.**
 <!-- BEGIN:tags (genere par la CI -- ne pas editer a la main) -->
 | Image | Version amont | Tag immuable a epingler |
 |-------|---------------|-------------------------|
-| `jbsky/suricata-hardened` | `8.0.8` | `8.0.8.0` |
+| `jbsky/suricata-hardened` | `8.0.8` | `8.0.8.1` |
 <!-- END:tags -->
 
 Ce tableau, les versions citees dans le texte et les tags qui apparaissent
