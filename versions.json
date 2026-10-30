@@ -1,5 +1,5 @@
 {
-  "suricata": "8.0.7",
+  "suricata": "8.0.8",
   "libhtp": "0.5.53",
   "libhtp_sha256": "c6f4aadfc40a57eee5518555c2cc1b2cd38d6d5f8ad3a24e7cfc6a0963c524fb",
   "alpine": "3.24",
