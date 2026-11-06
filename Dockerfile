@@ -21,7 +21,7 @@
 ARG SURICATA_VERSION
 
 # ---------- Stage 1 : builder ----------------------------------------
-FROM alpine:3.24@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a AS builder
+FROM alpine:3.24@sha256:3f4d6b32e26703c6082839234f43769d5046b3ac7c910033911d1e71d8cd630a AS builder
 
 ARG SURICATA_VERSION
 ARG LIBHTP_VERSION
@@ -143,7 +143,7 @@ RUN find /out -type f \( -name '*.a' -o -name '*.la' \) -delete \
       -exec strip --strip-unneeded {} +
 
 # ---------- Stage 2 : Go builder (entrypoint + healthcheck) ----------
-FROM golang:1.27-alpine@sha256:d200d2dd76b03a99b52651fd1325aff7dcd35422c35c01bac56571b0507f3deb AS gobuilder
+FROM golang:1.27-alpine@sha256:fa3d596898d9f126af7c01d14ee7597bab3f39cccf392ef36b69fe77cd681f18 AS gobuilder
 WORKDIR /build
 COPY go.mod init.go ./
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags='-s -w' -o /init .
@@ -160,7 +160,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags='-s -w' -o /init .
 # `versions-build-args.py --check` (porte `lint`) exige que le tag de ce FROM
 # reste dans cette branche, donc un bump de tag sans bump de versions.json
 # echoue avant tout build.
-FROM python:3.15-alpine@sha256:20a82dbc2783112ddb91d1534603f802d222a3e63e593cd002eb2ac534e70211 AS pybuilder
+FROM python:3.15-alpine@sha256:a0f2e268f2ce8f3709611a90054ec6a8ae31f6251f5896b8648b9bb99835e30a AS pybuilder
 
 # Garde. Les COPY et les purges ci-dessous nomment python3.15 en dur -- ils ne
 # peuvent pas faire autrement, le chemin du module est la mineure -- et
@@ -191,7 +191,7 @@ RUN PYV="$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')" \
 RUN pip install --no-cache-dir suricata-update
 
 # ---------- Stage 3 : prep (assemble runtime filesystem) -------------
-FROM alpine:3.24@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a AS prep
+FROM alpine:3.24@sha256:3f4d6b32e26703c6082839234f43769d5046b3ac7c910033911d1e71d8cd630a AS prep
 
 # -- Runtime APK installs split for proxy timeout --
 
