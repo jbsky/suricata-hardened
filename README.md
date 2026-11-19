@@ -2,29 +2,55 @@
 
 [![Build](https://github.com/jbsky/suricata-hardened/actions/workflows/build-push.yml/badge.svg)](https://github.com/jbsky/suricata-hardened/actions/workflows/build-push.yml)
 [![Docker Hub](https://img.shields.io/docker/v/jbsky/suricata-hardened?sort=semver&label=Docker%20Hub)](https://hub.docker.com/r/jbsky/suricata-hardened)
-[![Hardening](https://img.shields.io/badge/hardening-platine-blueviolet)](https://github.com/jbsky/suricata-hardened#security--verification)
+[![Hardening](https://img.shields.io/badge/hardening-platine-blueviolet)](https://github.com/jbsky/suricata-hardened#hardening)
 
-Image Docker Suricata 8 IPS hardenee (FROM scratch, Go init, tini PID 1), optimisee pour deploiement VyOS NFQUEUE.
+Suricata <!--v:suricata-hardened-->8.0.8<!--/v--> built from source, in a `FROM scratch`
+image: no shell, no package manager, no OS. Only Suricata, `suricata-update`
+and `suricatasc` with the Python runtime they need, their libraries, `tini`
+and a static Go init. Meant for an inline IPS in NFQUEUE mode on VyOS.
 
-## Features
+## What is built
 
-| Feature | Detail |
-|---------|--------|
-| FROM scratch | Zero shell, zero package manager, zero attack surface |
-| Non-root | uid 8000 avec file capabilities (`cap_net_admin,cap_sys_nice+ep`) |
-| Compiler hardening | RELRO, PIE, SSP, FORTIFY_SOURCE, NX |
-| Go static init | Healthcheck + config validation + setup-dirs (no shell) |
-| tini PID 1 | Signal forwarding + zombie reaping |
-| NFQUEUE IPS | 4 queues, workers runmode, optimise VyOS |
-| Hot rule reload | Via unix socket (zero downtime updates) |
+- **Suricata**: OISF's release tarball, verified against the OISF signing key
+  committed as [`oisf.gpg.asc`](oisf.gpg.asc), with its Rust protocol parsers.
+  Configured with `--enable-nfqueue`, `--enable-geoip` and
+  `--enable-non-bundled-htp`, without the bundled Python tooling and without
+  `-march=native`.
+- **libhtp**: built separately from its release tarball, sha256 pinned in
+  [`versions.json`](versions.json).
+- **`suricata-update` and `suricatasc`**: installed with pip on the official
+  `python:3.15-alpine` image (`pybuilder` stage), whose interpreter and pruned
+  standard library are copied into the final image. Embedded since 8.0.5, <!-- version-fixe -->
+  they make the former separate image `jbsky/suricata-updater` obsolete.
+
+## Hardening
+
+Tier **platine** (OCI label `security.hardening.tier`): a `FROM scratch` image
+with no shell and no package manager, a non-root user, a static Go init behind
+`tini` as PID 1, and binaries built with hardening flags.
+
+- Non-root user `8000:8000`: no process ever runs as root. The two privileges
+  an IPS needs come from **file capabilities** on `/usr/bin/suricata`
+  (`cap_net_admin,cap_sys_nice+ep`): NFQUEUE verdicts and CPU affinity. The
+  container engine must still allow them in its bounding set (VyOS:
+  `capability net-admin` and `sys-nice`).
+- Compiler flags: PIE, full RELRO, `-fstack-protector-strong`,
+  `-fstack-clash-protection`, `_FORTIFY_SOURCE=2`, non-executable stack;
+  stripped binaries.
+- Libraries copied from a dependency closure resolved at build time
+  (`lddtree`), never `/lib` or `/usr/lib` wholesale.
+- The init checks the configuration (`suricata -T`), downloads an initial
+  ruleset when none is present, and makes the rules, log and run directories
+  writable before starting Suricata.
 
 ## Tags
 
-Trois tags par image : `latest` (dernier build de `main`), la version amont
-seule, et la version amont suffixee d'un **compteur de revision**. Les deux
-premiers sont **reecrits en place** a chaque rebuild -- bump Alpine, correctif
-CVE, changement de config -- et le build qu'ils designaient devient alors
-inaccessible. **En production, epinglez le tag qui porte le compteur.**
+Every image is published under three tags: `latest` (last build of `main`),
+the upstream version alone, and the upstream version followed by a **revision
+counter**. The first two are **overwritten in place** on every rebuild (Alpine
+update, CVE fix, configuration change), and the build they pointed to can no
+longer be pulled by them. **In production, pin the tag that carries the
+counter.**
 
 <!-- BEGIN:tags (genere par la CI -- ne pas editer a la main) -->
 | Image | Version amont | Tag immuable a epingler |
@@ -32,136 +58,147 @@ inaccessible. **En production, epinglez le tag qui porte le compteur.**
 | `jbsky/suricata-hardened` | `8.0.8` | `8.0.8.6` |
 <!-- END:tags -->
 
-Ce tableau, les versions citees dans le texte et les tags qui apparaissent
-dans les exemples sont tous rendus par `update-readme-tags.sh` (jbsky/hardened-ci) apres
-chaque publication -- ne rien editer a la main.
+This table, the versions quoted in the text and the tags in the examples are
+rendered by `update-readme-tags.sh` ([hardened-ci](https://github.com/jbsky/hardened-ci))
+after each publication: do not edit them by hand.
 
-Le compteur compte les commits qui touchent les inputs declares (`Dockerfile`, `scripts/`, `versions.json`)
-depuis le dernier changement de version amont, et repart a `0` a chaque nouvelle
-version amont. Un commit qui ne touche que `.github/` ne l'incremente pas.
+The counter counts the commits that touch the image inputs (the `revision`
+list of [`.github/hardened-ci.json`](.github/hardened-ci.json)) since the last
+upstream version change, and restarts at `0` with each new upstream version. A
+commit that only touches `.github/` does not increment it.
 
-Les deux registres, `docker.io` et `ghcr.io`, publient les memes tags avec le
-meme digest.
+`docker.io` and `ghcr.io` publish the same tags with the same digest, for
+`linux/amd64`. Each registry keeps the last six immutable tags of an image, so
+that superseded builds do not stay pullable: move your pin forward.
 
-`suricata-update` et `suricatasc` sont embarques dans l'image depuis la 8.0.5 : <!-- version-fixe -->
-l'ancienne image separee `jbsky/suricata-updater` est obsolete.
+`version-watch` checks OISF's releases daily, bumps `versions.json` and
+republishes.
 
-## Usage rapide
+## Usage
+
+On VyOS, the full configuration is in
+[`vyos/vyos-container.config`](vyos/vyos-container.config):
+
+```
+set container name suricata allow-host-networks
+set container name suricata arguments '-q 0 -q 1 -q 2 -q 3 --runmode workers'
+set container name suricata capability 'net-admin'
+set container name suricata capability 'sys-nice'
+set container name suricata image 'docker.io/jbsky/suricata-hardened:8.0.8.6'
+set container name suricata memory '1536'
+set container name suricata volume config source '/config/containers/suricata/etc'
+set container name suricata volume config destination '/etc/suricata'
+set container name suricata volume config mode 'ro'
+set container name suricata volume logs source '/var/log/suricata'
+set container name suricata volume logs destination '/var/log/suricata'
+set container name suricata volume rules source '/config/containers/suricata/rules'
+set container name suricata volume rules destination '/var/lib/suricata/rules'
+set container name suricata volume run source '/config/containers/suricata/run'
+set container name suricata volume run destination '/var/run/suricata'
+```
+
+- **Host network namespace is mandatory** (`allow-host-networks`): NFQUEUE
+  works on packets crossing the host's network stack, so Suricata must reach
+  the host's netfilter queues.
+- **Traffic is sent to the queues** by netfilter rules (in
+  `vyos-preconfig-bootup.script`), here for the WAN interface only:
+
+  ```bash
+  iptables -t mangle -A FORWARD -i eth1 -j MARK --set-mark 10
+  iptables -t mangle -A FORWARD -o eth1 -j MARK --set-mark 10
+  iptables -t mangle -A POSTROUTING -m mark --mark 10 -j NFQUEUE \
+    --queue-balance 0:3 --queue-cpu-fanout --queue-bypass
+  ```
+
+  `--queue-bypass` keeps the WAN working, uninspected, when Suricata is down.
+- **Rules, logs and run directories belong to uid `8000`** (`chown -R
+  8000:8000`): the init refuses to start when one of them is not writable, and
+  says how to fix it -- it downloads an initial ruleset into an empty rules
+  directory. Only the configuration is mounted read-only.
+- Arguments that do not start with `suricata` get it put in front by the init
+  (VyOS passes raw arguments that override the image `CMD`).
+- **Healthcheck**: the init checks the PID file (signal 0) or, failing that,
+  the presence of the unix command socket
+  (`/var/run/suricata/suricata-command.socket`, also used by `suricatasc`).
+
+### Rule updates
+
+[`vyos/suricata-update.sh`](vyos/suricata-update.sh), run daily by the VyOS
+task scheduler: stops Suricata (traffic keeps flowing through
+`--queue-bypass` for about 30 s), runs `suricata-update` in an ephemeral
+container of the same image, checks that the rules file actually changed,
+then starts Suricata again -- with the previous rules if the download failed.
+
+### Configuration
+
+| Environment variable | Default | Description |
+|---|---|---|
+| `SURICATA_CONF` | `/etc/suricata/suricata.yaml` | Configuration checked with `suricata -T` before start |
+| `SURICATA_STRICT_TEST` | (empty) | `1` makes a failed `suricata -T` fatal; by default rule parse errors only log a warning |
+
+## Build and test
 
 ```bash
-make build   # Build l'image
-make up      # Demarre Suricata en mode IPS
-make test    # Smoke tests (healthcheck + alert detection)
-make scan    # Trivy vulnerability scan
-make down    # Arrete
+make build   # build args come from versions.json
+make up      # start the compose stack (local test, no NFQUEUE)
+make scan    # Trivy, HIGH and CRITICAL
+./scripts/test-alerts.sh suricata-hardened
 ```
 
-## Deploiement VyOS
+`scripts/test-alerts.sh` checks the healthcheck, the absence of shell, the log
+directory, the file capability on `/usr/bin/suricata` (without it, NFQUEUE
+would only fail on the router) and the `suricata-update` import chain. A full
+IPS validation needs NFQUEUE on VyOS with live traffic. Building takes
+15-20 minutes on amd64, most of it compiling Rust.
 
-Voir `vyos/vyos-container.config` pour les commandes VyOS completes et `vyos/suricata-update.sh` pour le script de mise a jour quotidienne des regles.
+Versions live only in [`versions.json`](versions.json): the Dockerfile has no
+defaults, `make build` and CI pass them through `scripts/versions-build-args.py`,
+and a bare `docker build` stops at the guard.
+
+## Verification
+
+Images are signed with [cosign](https://github.com/sigstore/cosign) (keyless,
+GitHub OIDC) by the shared [hardened-ci](https://github.com/jbsky/hardened-ci)
+pipeline. The certificate names that workflow and, in an extension, this
+repository: the commands below require both.
 
 ```bash
-# Appliquer la config container sur VyOS
-configure
-# ... (coller les commandes de vyos/vyos-container.config)
-commit
-save
-```
-
-## Architecture
-
-```
-suricata-hardened/
-├── Dockerfile              # Multi-stage (Alpine builder → FROM scratch)
-├── docker-compose.yml      # Stack hardenee
-├── Makefile                # Raccourcis dev
-├── versions.json           # Versions trackees (Suricata, Alpine)
-├── go.mod + init.go        # Go static init binary
-├── conf/
-│   └── suricata.yaml       # Config Suricata (NFQUEUE, workers, thresholds)
-├── updater/
-│   └── Dockerfile          # Image ephemere suricata-update
-├── vyos/
-│   ├── vyos-container.config   # Commandes VyOS container
-│   └── suricata-update.sh      # Cron daily rule update
-├── scripts/
-│   ├── check-versions.sh  # Detection version upstream
-│   └── test-alerts.sh     # Test de detection (ET rules)
-└── .github/
-    ├── dependabot.yml      # Weekly GH Actions + Docker updates
-    └── workflows/
-        ├── build-push.yml      # Build + sign + scan + release
-        ├── version-watch.yml   # Daily OISF/suricata release detection
-        └── security-audit.yml  # Weekly Trivy + Grype + cosign verify
-```
-
-## CI/CD
-
-Dual pipeline (GitLab + GitHub Actions) :
-
-| Stage | Description |
-|-------|-------------|
-| lint | hadolint |
-| build | buildx + push (ghcr.io + Docker Hub) |
-| sign | cosign keyless OIDC |
-| scan | Trivy SARIF |
-| attest | SBOM + SLSA provenance (level 2) |
-| version-watch | Cron quotidien — rebuild auto sur nouvelle version Suricata |
-| security-audit | Cron hebdomadaire — scan vulnerabilites + verification cosign |
-
-## Security & Verification
-
-This image is signed with [cosign](https://github.com/sigstore/cosign) using keyless OIDC (Sigstore).
-
-### Verify image signature
-
-```bash
-# From ghcr.io (signatures stored natively)
-cosign verify \
+# ghcr.io
+cosign verify ghcr.io/jbsky/suricata-hardened:8.0.8.6 \
   --certificate-identity-regexp '^https://github.com/(jbsky/suricata-hardened|jbsky/hardened-ci)/' \
   --certificate-github-workflow-repository jbsky/suricata-hardened \
-  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  ghcr.io/jbsky/suricata-hardened:latest
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
 
-# From Docker Hub (signatures stored in ghcr.io)
+# Docker Hub (the signature is stored on ghcr.io)
 COSIGN_REPOSITORY=ghcr.io/jbsky/suricata-hardened \
-  cosign verify \
+  cosign verify docker.io/jbsky/suricata-hardened:8.0.8.6 \
   --certificate-identity-regexp '^https://github.com/(jbsky/suricata-hardened|jbsky/hardened-ci)/' \
   --certificate-github-workflow-repository jbsky/suricata-hardened \
-  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  docker.io/jbsky/suricata-hardened:latest
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 
-### Hardening tier "Platine" guarantees
-
-| Property | Description |
-|----------|-------------|
-| FROM scratch | No base image, no shell, no package manager |
-| Go static init | Binary entrypoint + healthcheck (no script) |
-| tini PID 1 | Proper signal forwarding and zombie reaping |
-| Non-root | Runs as unprivileged UID |
-| Compiler hardening | RELRO, PIE, SSP, FORTIFY_SOURCE, stack-clash, NX |
-| Cosign signed | OIDC keyless signature via Sigstore transparency log |
-| SBOM | Software Bill of Materials embedded in manifest |
-| SLSA provenance | Build provenance attestation (level 2) |
-
-### Known Security Exceptions
-
-See [SECURITY.md](SECURITY.md) for the current status of the weekly Trivy/Grype audit,
-including CVEs that are suppressed with a documented reason (e.g. code paths that are
-present in a bundled runtime but never exercised by this image) versus ones still
-genuinely blocked pending an upstream release.
+Each published digest also carries a CycloneDX SBOM (the `prep` stage the
+image is assembled from, plus its Go binaries), attested with cosign, and a
+GitHub SLSA build provenance attestation. The pipeline lints, builds, scans the
+`prep` stage with Trivy, tests the exact digest it is about to publish (image
+manifest, dependency closure, functional tests), then promotes and signs it.
+Base image digests follow upstream daily (`base-watch`), a fixable Alpine
+package CVE triggers a rebuild (`cve-watch`), and the published image is
+audited weekly (`security-audit`: Trivy, Grype, cosign). Audit status and
+documented exceptions (for instance a Python CVE in code `suricata-update`
+never reaches): [`SECURITY.md`](SECURITY.md).
 
 ## License
 
-Le contenu de ce depot -- Dockerfile, `init.go`, scripts et chaine CI -- est
-sous **Apache-2.0**, voir [`LICENSE`](LICENSE). Copyright 2026 jbsky.
+The contents of this repository (Dockerfile, `init.go`, scripts and CI) are
+licensed under **Apache-2.0**, see [`LICENSE`](LICENSE). Copyright 2026 jbsky.
 
-**Suricata est sous GPL-2.0-only** et le reste ainsi dans l'image. La
-distinction compte particulierement ici : Apache-2.0 et GPL-2.0-only ne sont
-pas compatibles *au sein d'une meme oeuvre*, elles le sont parfaitement dans
-une meme image. `init.go` est un programme distinct : il execute Suricata, il
-n'est lie a aucune de ses bibliotheques et n'en reprend aucun code.
+The software shipped in the image keeps its own license: **Suricata is under
+GPL-2.0-only**, and stays so in the image. The distinction matters here:
+Apache-2.0 and GPL-2.0-only are not compatible *within a single work*, and
+perfectly so within a single image. `init.go` is a separate program: it
+executes Suricata, is linked to none of its libraries and reuses none of its
+code.
 
-Contributions : voir [`CONTRIBUTING.md`](CONTRIBUTING.md), un `Signed-off-by`
-est demande.
+Contributions: see [`CONTRIBUTING.md`](CONTRIBUTING.md); a `Signed-off-by` is
+required.
