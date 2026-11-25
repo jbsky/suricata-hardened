@@ -184,10 +184,12 @@ RUN PYV="$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')" \
 # path that does not exist, and a resolver that brings them back must not
 # reach the final image.
 #
-# pyyaml 6.0.3 has no cp315 musl wheel yet, so pip builds it from the sdist
-# and falls back to the pure-Python parser (`yaml.__with_libyaml__` is False):
-# one ELF fewer in the image, and a YAML parse that costs a few milliseconds
-# more on a program that runs once a day.
+# pyyaml is not pinned: pip takes the latest. Up to 6.0.3 it had no cp315
+# musl wheel and fell back to the pure-Python parser; 6.0.4 (resolved on
+# 2026-11-25) builds `yaml/_yaml.*.so` against libyaml (`yaml.__with_libyaml__`
+# is True), so the image carries one more ELF -- its closure (libyaml, from the
+# `yaml` package of prep) is checked by build-push like every other ELF, and
+# image.manifest lists it.
 RUN pip install --no-cache-dir suricata-update
 
 # ---------- Stage 3 : prep (assemble runtime filesystem) -------------
