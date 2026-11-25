@@ -108,6 +108,7 @@ f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/syslog.cpython-315-x86_64-li
 f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/termios.cpython-315-x86_64-linux-musl.so
 f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/unicodedata.cpython-315-x86_64-linux-musl.so
 f 0755 0:0 elf usr/local/lib/python3.15/lib-dynload/zlib.cpython-315-x86_64-linux-musl.so
+f 0755 0:0 elf usr/local/lib/python3.15/site-packages/yaml/_yaml.cpython-315-x86_64-linux-musl.so
 
 present etc/ssl/certs/
 count 1 etc/suricata/
@@ -130,7 +131,10 @@ count 24 usr/local/lib/python3.15/multiprocessing/
 count 4 usr/local/lib/python3.15/pathlib/
 count 61 usr/local/lib/python3.15/profiling/
 count 5 usr/local/lib/python3.15/re/
-count 86 usr/local/lib/python3.15/site-packages/
+count 1 usr/local/lib/python3.15/site-packages/_yaml/
+count 7 usr/local/lib/python3.15/site-packages/pyyaml-6.0.4.dist-info/
+count 47 usr/local/lib/python3.15/site-packages/suricata/
+count 8 usr/local/lib/python3.15/site-packages/suricata_update-1.3.3.dist-info/
 count 2 usr/local/lib/python3.15/string/
 count 2 usr/local/lib/python3.15/sysconfig/
 count 5 usr/local/lib/python3.15/tomllib/
